@@ -1,0 +1,3 @@
+masuk folder niheal
+tinggal "npm run dev" di terminal
+nanti udah jalan front-end (port 3000) sama back-end (port 4000)

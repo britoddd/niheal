@@ -7,8 +7,26 @@ const flash = require('express-flash');
 const passport = require("passport");
 const initializePassport = require("./passportConfig");
 const cors = require('cors');
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
 
 initializePassport(passport);
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, req.user.id + "_profile" + ext); // e.g. 5_profile.jpg
+    }
+});
+const upload = multer({ storage });
 
 const PORT = process.env.PORT || 4000;
 
@@ -23,13 +41,20 @@ app.use(express.urlencoded({extended: false}));
 app.use(session({
     secret: `secret`, 
     resave: false,
-    save: false
+    saveUninitialized: false,
+    cookie: {
+        secure: false,
+        httpOnly: true,
+        sameSite: 'lax'
+    }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
 app.use(flash())
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // API Routes
 app.get("/api/", (req, res) => {
@@ -123,6 +148,58 @@ app.post("/api/login", (req, res, next) => {
             });
         });
     })(req, res, next);
+});
+
+// Get logged in user's profile
+app.get("/api/profile", checkNotAuthenticated, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT u.id, u.name, u.email, p.birthdate, p.weight, p.height, p.profile_picture
+             FROM users u
+             LEFT JOIN profiles p ON u.id = p.user_id
+             WHERE u.id = $1`,
+            [req.user.id]
+        );
+        res.json({ profile: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching profile." });
+    }
+});
+
+// Create or update profile (text fields)
+app.put("/api/profile", checkNotAuthenticated, async (req, res) => {
+    const { birthdate, weight, height, profile_picture } = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO profiles (user_id, birthdate, weight, height, profile_picture)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (user_id)
+             DO UPDATE SET birthdate = $2, weight = $3, height = $4, profile_picture = $5`,
+            [req.user.id, birthdate, weight, height, profile_picture]
+        );
+        res.json({ message: "Profile saved successfully!" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Error saving profile." });
+    }
+});
+
+// Upload profile picture (file)
+app.post("/api/profile/picture", checkNotAuthenticated, upload.single("picture"), async (req, res) => {
+    try {
+        const filePath = `/uploads/${req.file.filename}`;
+        await pool.query(
+            `INSERT INTO profiles (user_id, profile_picture)
+             VALUES ($1, $2)
+             ON CONFLICT (user_id)
+             DO UPDATE SET profile_picture = $2`,
+            [req.user.id, filePath]
+        );
+        res.json({ message: "Profile picture uploaded!", profile_picture: filePath });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Error uploading profile picture." });
+    }
 });
 
 function checkAuthenticated(req, res, next) {

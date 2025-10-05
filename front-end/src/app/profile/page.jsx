@@ -25,6 +25,13 @@ const Profile = () => {
         });
 
         const profileData = await profileRes.json();
+
+        // ✅ Ensure date is in yyyy-mm-dd format (so <input type="date"> works)
+        if (profileData.profile?.birthdate) {
+          const date = new Date(profileData.profile.birthdate);
+          profileData.profile.birthdate = date.toISOString().split('T')[0];
+        }
+
         setProfile(profileData.profile || {});
       } catch (error) {
         console.error('Error fetching profile data:', error);
@@ -57,6 +64,7 @@ const Profile = () => {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     try {
+      // ✅ Send all profile fields, including birthdate
       const res = await fetch(`${API_URL}/api/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -65,8 +73,22 @@ const Profile = () => {
       });
 
       const data = await res.json();
-      setMessage(data.message);
+
+      if (res.ok) {
+        setMessage(data.message || 'Profile updated!');
+
+        // ✅ Keep profile state after saving
+        setProfile((prev) => ({
+          ...prev,
+          birthdate: profile.birthdate, // preserve date
+          weight: profile.weight,
+          height: profile.height,
+        }));
+      } else {
+        setMessage('Error updating profile.');
+      }
     } catch (err) {
+      console.error('Error updating profile:', err);
       setMessage('Error updating profile.');
     }
   };
@@ -107,22 +129,11 @@ const Profile = () => {
 
       <form onSubmit={handleSaveProfile}>
         <label>
-          Name:
-          <input
-            type="text"
-            name="name"
-            value={profile.name || ''}
-            onChange={handleChange}
-          />
-        </label>
-        <br />
-
-        <label>
           Birthdate:
           <input
             type="date"
             name="birthdate"
-            value={profile.birthdate || ''}
+            value={profile.birthdate || ''} 
             onChange={handleChange}
           />
         </label>

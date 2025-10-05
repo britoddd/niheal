@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const app = express();
 const { pool } = require("./dbConfig");
@@ -11,7 +10,7 @@ const cors = require('cors');
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const ASCVDCalculator = require("./ascvd_calc"); // Import the ASCVD calculator
+const ASCVDCalculator = require("./ascvd_calc");
 
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -26,7 +25,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname);
-        cb(null, req.user.id + "_profile" + ext); // e.g. 5_profile.jpg
+        cb(null, req.user.id + "_profile" + ext);
     }
 });
 
@@ -148,18 +147,29 @@ app.post("/api/login", (req, res, next) => {
 
 // Get logged in user's profile
 app.get("/api/profile", checkNotAuthenticated, async (req, res) => {
-    try {
-        const result = await pool.query(
-            `SELECT u.id, u.name, u.email, p.birthdate, p.weight, p.height, p.profile_picture
-             FROM users u
-             LEFT JOIN profiles p ON u.id = p.user_id
-             WHERE u.id = $1`,
-            [req.user.id]
-        );
-        res.json({ profile: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ message: "Error fetching profile." });
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.name, u.email, p.birthdate, p.weight, p.height, p.profile_picture
+       FROM users u
+       LEFT JOIN profiles p ON u.id = p.user_id
+       WHERE u.id = $1`,
+      [req.user.id]
+    );
+
+    const profile = result.rows[0];
+    if (profile && profile.birthdate) {
+    // convert to YYYY-MM-DD manually using UTC values
+    const d = new Date(profile.birthdate);
+    profile.birthdate = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+        .toISOString()
+        .split('T')[0];
     }
+
+    res.json({ profile });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error fetching profile." });
+  }
 });
 
 // Create or update profile

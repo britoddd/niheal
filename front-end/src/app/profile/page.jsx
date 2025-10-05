@@ -23,7 +23,15 @@ const Profile = () => {
           method: 'GET',
           credentials: 'include',
         });
+
         const profileData = await profileRes.json();
+
+        // ✅ Ensure date is in yyyy-mm-dd format (so <input type="date"> works)
+        if (profileData.profile?.birthdate) {
+          const date = new Date(profileData.profile.birthdate);
+          profileData.profile.birthdate = date.toISOString().split('T')[0];
+        }
+
         setProfile(profileData.profile || {});
       } catch (error) {
         console.error('Error fetching profile data:', error);
@@ -32,6 +40,7 @@ const Profile = () => {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [router]);
 
@@ -55,15 +64,31 @@ const Profile = () => {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     try {
+      // ✅ Send all profile fields, including birthdate
       const res = await fetch(`${API_URL}/api/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(profile),
       });
+
       const data = await res.json();
-      setMessage(data.message);
+
+      if (res.ok) {
+        setMessage(data.message || 'Profile updated!');
+
+        // ✅ Keep profile state after saving
+        setProfile((prev) => ({
+          ...prev,
+          birthdate: profile.birthdate, // preserve date
+          weight: profile.weight,
+          height: profile.height,
+        }));
+      } else {
+        setMessage('Error updating profile.');
+      }
     } catch (err) {
+      console.error('Error updating profile:', err);
       setMessage('Error updating profile.');
     }
   };
@@ -83,48 +108,58 @@ const Profile = () => {
 
     const data = await res.json();
     setMessage(data.message);
+
     if (data.profile_picture) {
       setProfile({ ...profile, profile_picture: data.profile_picture });
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return 'Loading...';
 
   return (
-    <div>
+    <div style={{ padding: '20px' }}>
       <button onClick={handleLogout}>Logout</button>
-      <br/>
-      <button onClick={handleBack}>Back to Dashboard</button>
+      <button onClick={handleBack} style={{ marginLeft: '10px' }}>
+        Back to Dashboard
+      </button>
 
       <h1>{user?.name || 'User'}'s Profile</h1>
 
       {message && <p>{message}</p>}
 
       <form onSubmit={handleSaveProfile}>
-        <input
-          type="date"
-          name="birthdate"
-          value={profile.birthdate ? profile.birthdate.split('T')[0] : ''}
-          onChange={handleChange}
-        /><br/>
+        <label>
+          Birthdate:
+          <input
+            type="date"
+            name="birthdate"
+            value={profile.birthdate || ''} 
+            onChange={handleChange}
+          />
+        </label>
+        <br />
 
-        <input
-          type="number"
-          step="0.01"
-          name="weight"
-          placeholder="Weight"
-          value={profile.weight || ''}
-          onChange={handleChange}
-        /><br/>
+        <label>
+          Weight (kg):
+          <input
+            type="number"
+            name="weight"
+            value={profile.weight || ''}
+            onChange={handleChange}
+          />
+        </label>
+        <br />
 
-        <input
-          type="number"
-          step="0.01"
-          name="height"
-          placeholder="Height"
-          value={profile.height || ''}
-          onChange={handleChange}
-        /><br/>
+        <label>
+          Height (cm):
+          <input
+            type="number"
+            name="height"
+            value={profile.height || ''}
+            onChange={handleChange}
+          />
+        </label>
+        <br />
 
         <button type="submit">Save Profile</button>
       </form>
@@ -135,9 +170,11 @@ const Profile = () => {
           src={`${API_URL}${profile.profile_picture}`}
           alt="Profile"
           width="150"
+          height="150"
+          style={{ display: 'block', marginBottom: '10px' }}
         />
       )}
-      <input type="file" accept="image/*" onChange={handleFileChange} />
+      <input type="file" onChange={handleFileChange} />
     </div>
   );
 };

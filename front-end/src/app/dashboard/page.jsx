@@ -22,12 +22,13 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         // Use the new apiCall function for all requests
-        const [userResponse, profileData, testsData, historyData] = await Promise.all([
-          apiCall('/api/user'),
-          apiCall('/api/profile'),
-          apiCall('/api/risk-tests'),
-          apiCall('/api/test-history')
-        ]);
+        const [userResponse, profileData, testsData, historyData] =
+          await Promise.all([
+            apiCall('/api/user'),
+            apiCall('/api/profile'),
+            apiCall('/api/risk-tests'),
+            apiCall('/api/test-history'),
+          ]);
 
         setUser(userResponse.user);
         setProfile(profileData.profile || {});
@@ -43,6 +44,7 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [router]);
 
@@ -58,7 +60,6 @@ const Dashboard = () => {
         method: 'POST',
         body: JSON.stringify(formData),
       });
-
       setResult(resultData);
 
       // Refresh history
@@ -72,98 +73,90 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return 'Loading...';
 
   return (
     <div>
-      <div>
-        <h1>Hello {user?.name || 'User'}</h1>
-        <Link href="/profile">
-          {profile.profile_picture ? (
-            <img
-              src={`${API_URL}${profile.profile_picture}`}
-              alt="Profile"
-              width="100"
-              height="100"
+      <h1>Hello {user?.name || 'User'}</h1>
+
+      <Link href="/profile">
+        {profile.profile_picture ? (
+          <img
+            src={`${API_URL}${profile.profile_picture}`}
+            alt="Profile"
+            width="100"
+            height="100"
+          />
+        ) : (
+          <button>Go to Profile</button>
+        )}
+      </Link>
+
+      {/* Disease Selection Section */}
+      <section>
+        <h2>Health Risk Assessment</h2>
+        <p>Select a disease to check your risk:</p>
+
+        {tests.map((test) => (
+          <div
+            key={test.name}
+            onClick={() => handleTestSelect(test)}
+            style={{
+              border: '1px solid #ccc',
+              padding: '10px',
+              margin: '5px',
+              cursor: 'pointer',
+            }}
+          >
+            <strong>{test.name}</strong>
+            <p>{test.description}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* Test Form Section */}
+      {selectedTest && (
+        <section>
+          <h3>{selectedTest.name} Risk Assessment</h3>
+          {selectedTest.name === 'ASCVD' && (
+            <ASCVDForm
+              onSubmit={handleASCVDSubmit}
+              calculating={calculating}
             />
-          ) : (
-            <button>Go to Profile</button>
           )}
-        </Link>
-      </div>
+        </section>
+      )}
 
-      <div>
-        {/* Disease Selection Section */}
-        <div>
-          <h2>Health Risk Assessment</h2>
-          <p>Select a disease to check your risk:</p>
-          <div>
-            {tests.map((test) => (
-              <div
-                key={test.id}
-                onClick={() => handleTestSelect(test)}
-                style={{ 
-                  border: '1px solid #ccc', 
-                  padding: '10px', 
-                  margin: '5px',
-                  cursor: 'pointer'
-                }}
-              >
-                <h3>{test.name}</h3>
-                <p>{test.description}</p>
-              </div>
+      {/* Results Section */}
+      {result && (
+        <section>
+          <h3>Test Results</h3>
+          <p>10-Year ASCVD Risk: {result.risk_percentage}%</p>
+          <p>Risk Category: {result.risk_category}</p>
+          {result.message && <p>{result.message}</p>}
+          {result.interpretation && <p>{result.interpretation}</p>}
+          <p>
+            Calculated on:{' '}
+            {new Date(result.created_at).toLocaleDateString()}
+          </p>
+        </section>
+      )}
+
+      {/* Test History Section */}
+      {testHistory.length > 0 && (
+        <section>
+          <h3>Your Test History</h3>
+          <ul>
+            {testHistory.map((item) => (
+              <li key={item.id}>
+                <strong>{item.test_name}</strong> -{' '}
+                {new Date(item.created_at).toLocaleDateString()} -{' '}
+                {item.risk_percentage}% ({item.risk_category})
+              </li>
             ))}
-          </div>
-        </div>
-
-        {/* Test Form Section */}
-        {selectedTest && (
-          <div>
-            <h3>{selectedTest.name} Risk Assessment</h3>
-            {selectedTest.name === 'ASCVD' && (
-              <ASCVDForm 
-                onSubmit={handleASCVDSubmit} 
-                calculating={calculating}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Results Section */}
-        {result && (
-          <div>
-            <h3>Test Results</h3>
-            <div style={{ border: '1px solid #000', padding: '10px' }}>
-              <h4>10-Year ASCVD Risk: {result.risk_percentage}%</h4>
-              <p>Risk Category: {result.risk_category}</p>
-              {result.message && <p>{result.message}</p>}
-              {result.interpretation && <p>{result.interpretation}</p>}
-              <p>Calculated on: {new Date(result.created_at).toLocaleDateString()}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Test History Section */}
-        {testHistory.length > 0 && (
-          <div>
-            <h3>Your Test History</h3>
-            <div>
-              {testHistory.map((item) => (
-                <div key={item.id} style={{ border: '1px solid #ccc', padding: '10px', margin: '5px' }}>
-                  <div>
-                    <strong>{item.test_name}</strong>
-                    <span> - {new Date(item.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <div>
-                    <span>{item.risk_percentage}% - </span>
-                    <span>{item.risk_category}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+          </ul>
+        </section>
+      )}
     </div>
   );
 };
@@ -174,173 +167,149 @@ const ASCVDForm = ({ onSubmit, calculating }) => {
     age: '',
     sex: 'male',
     systolic_bp: '',
-    total_chol: '', // Fixed: was 'total_chp' in the input below
+    total_chol: '',
     hdl_chol: '',
     egfr: '',
     is_smoker: false,
     is_diabetic: false,
     is_treated_bp: false,
-    is_treated_chol: false
+    is_treated_chol: false,
   });
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
     // Convert string values to numbers
     const numericData = {
       ...formData,
       age: parseInt(formData.age) || 0,
       systolic_bp: parseInt(formData.systolic_bp) || 0,
-      total_chol: parseInt(formData.total_chol) || 0, // Fixed
+      total_chol: parseInt(formData.total_chol) || 0,
       hdl_chol: parseInt(formData.hdl_chol) || 0,
-      egfr: parseInt(formData.egfr) || 0
+      egfr: parseInt(formData.egfr) || 0,
     };
-
     onSubmit(numericData);
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-        <div>
-          <label htmlFor="age">Age (18-100 years)</label>
-          <input
-            type="number"
-            id="age"
-            name="age"
-            value={formData.age}
-            onChange={handleChange}
-            min="18"
-            max="100"
-            required
-          />
-        </div>
+      <label>
+        Age (18-100 years)
+        <input
+          type="number"
+          name="age"
+          value={formData.age}
+          onChange={handleChange}
+          required
+        />
+      </label>
 
-        <div>
-          <label htmlFor="sex">Sex</label>
-          <select
-            id="sex"
-            name="sex"
-            value={formData.sex}
-            onChange={handleChange}
-            required
-          >
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </div>
+      <label>
+        Sex
+        <select
+          id="sex"
+          name="sex"
+          value={formData.sex}
+          onChange={handleChange}
+          required
+        >
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </label>
 
-        <div>
-          <label htmlFor="systolic_bp">Systolic Blood Pressure (mmHg)</label>
-          <input
-            type="number"
-            id="systolic_bp"
-            name="systolic_bp"
-            value={formData.systolic_bp} // This line is correct
-            onChange={handleChange}
-            min="80"
-            max="250"
-            required
-          />
-        </div>
+      <label>
+        Systolic Blood Pressure (mmHg)
+        <input
+          type="number"
+          name="systolic_bp"
+          value={formData.systolic_bp}
+          onChange={handleChange}
+          required
+        />
+      </label>
 
-        <div>
-          <label htmlFor="total_chol">Total Cholesterol (mg/dL)</label>
-          <input
-            type="number"
-            id="total_chol"
-            name="total_chol"
-            value={formData.total_chol} // FIXED: was formData.total_chp
-            onChange={handleChange}
-            min="100"
-            max="400"
-            required
-          />
-        </div>
+      <label>
+        Total Cholesterol (mg/dL)
+        <input
+          type="number"
+          name="total_chol"
+          value={formData.total_chol}
+          onChange={handleChange}
+          required
+        />
+      </label>
 
-        <div>
-          <label htmlFor="hdl_chol">HDL Cholesterol (mg/dL)</label>
-          <input
-            type="number"
-            id="hdl_chol"
-            name="hdl_chol"
-            value={formData.hdl_chol}
-            onChange={handleChange}
-            min="20"
-            max="100"
-            required
-          />
-        </div>
+      <label>
+        HDL Cholesterol (mg/dL)
+        <input
+          type="number"
+          name="hdl_chol"
+          value={formData.hdl_chol}
+          onChange={handleChange}
+          required
+        />
+      </label>
 
-        <div>
-          <label htmlFor="egfr">eGFR (mL/min/1.73m²)</label>
-          <input
-            type="number"
-            id="egfr"
-            name="egfr"
-            value={formData.egfr}
-            onChange={handleChange}
-            min="15"
-            max="120"
-            required
-          />
-        </div>
-      </div>
+      <label>
+        eGFR (mL/min/1.73m²)
+        <input
+          type="number"
+          name="egfr"
+          value={formData.egfr}
+          onChange={handleChange}
+          required
+        />
+      </label>
 
-      <div style={{ margin: '10px 0' }}>
-        <label style={{ display: 'block', margin: '5px 0' }}>
-          <input
-            type="checkbox"
-            name="is_smoker"
-            checked={formData.is_smoker}
-            onChange={handleChange}
-          />
-          Current Smoker
-        </label>
+      <label>
+        <input
+          type="checkbox"
+          name="is_smoker"
+          checked={formData.is_smoker}
+          onChange={handleChange}
+        />
+        Current Smoker
+      </label>
 
-        <label style={{ display: 'block', margin: '5px 0' }}>
-          <input
-            type="checkbox"
-            name="is_diabetic"
-            checked={formData.is_diabetic}
-            onChange={handleChange}
-          />
-          Diabetic
-        </label>
+      <label>
+        <input
+          type="checkbox"
+          name="is_diabetic"
+          checked={formData.is_diabetic}
+          onChange={handleChange}
+        />
+        Diabetic
+      </label>
 
-        <label style={{ display: 'block', margin: '5px 0' }}>
-          <input
-            type="checkbox"
-            name="is_treated_bp"
-            checked={formData.is_treated_bp}
-            onChange={handleChange}
-          />
-          On Blood Pressure Medication
-        </label>
+      <label>
+        <input
+          type="checkbox"
+          name="is_treated_bp"
+          checked={formData.is_treated_bp}
+          onChange={handleChange}
+        />
+        On Blood Pressure Medication
+      </label>
 
-        <label style={{ display: 'block', margin: '5px 0' }}>
-          <input
-            type="checkbox"
-            name="is_treated_chol"
-            checked={formData.is_treated_chol}
-            onChange={handleChange}
-          />
-          On Cholesterol Medication
-        </label>
-      </div>
+      <label>
+        <input
+          type="checkbox"
+          name="is_treated_chol"
+          checked={formData.is_treated_chol}
+          onChange={handleChange}
+        />
+        On Cholesterol Medication
+      </label>
 
-      <button 
-        type="submit" 
-        disabled={calculating}
-      >
+      <button type="submit" disabled={calculating}>
         {calculating ? 'Calculating...' : 'Calculate ASCVD Risk'}
       </button>
     </form>

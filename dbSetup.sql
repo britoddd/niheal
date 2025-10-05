@@ -1,8 +1,9 @@
+-- ========================================
 -- SETUP DATABASE
-
+-- ========================================
 /*
-1. Go to ../s2c in cmd
-2. Run the following:
+Go to ../s2c in cmd
+Run the following:
 
 psql -U postgres -d postgres
 (password sesuai yg dibuat pas install psql)
@@ -14,13 +15,13 @@ CREATE DATABASE niheal OWNER amdg;
 psql -U amdg -d niheal
 (password: 12345)
 
-3. Lastly, run this file
+Lastly, run this file
 \i 'dbSetup.sql'
 */
 
--- ==============================
+-- ========================================
 -- TABLE CREATION
--- ==============================
+-- ========================================
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY NOT NULL,
@@ -65,12 +66,12 @@ CREATE TABLE IF NOT EXISTS ascvd_coefficients (
     beta_value NUMERIC(10,6) NOT NULL,
     mean_value NUMERIC(10,6) NOT NULL,
     base_survival_10yr NUMERIC(10,6) NOT NULL,
-    UNIQUE (sex, variable) -- prevents duplicate coefficients
+    UNIQUE (sex, variable)
 );
 
--- ==============================
+-- ========================================
 -- INSERT DEFAULT DATA SAFELY
--- ==============================
+-- ========================================
 
 INSERT INTO risk_tests (id, name, description)
 SELECT id, name, description FROM (VALUES
@@ -87,24 +88,44 @@ WHERE NOT EXISTS (
 INSERT INTO ascvd_coefficients (sex, variable, beta_value, mean_value, base_survival_10yr)
 SELECT * FROM (
     VALUES
-    ('female', 'age_sqrt', 0.315, 6.123, 0.989),
-    ('female', 'log_sbp', 0.428, 4.852, 0.989),
-    ('female', 'total_chol', 0.002, 199.5, 0.989),
-    ('female', 'hdl_chol', -0.015, 55.2, 0.989),
-    ('female', 'smoker', 0.645, 0.15, 0.989),
-    ('female', 'diabetic', 0.422, 0.12, 0.989),
-    ('female', 'bp_treated', 0.235, 0.25, 0.989),
-    ('female', 'chol_treated', 0.128, 0.18, 0.989),
-    ('female', 'log_egfr', -0.215, 4.18, 0.989),
+        ('female', 'age_scaled', 0.732, 0.0, 0.9533),
+        ('female', 'sbp_low_decrease', 0.113, 0.2, 0.9533),
+        ('female', 'sbp_high', 0.165, 1.4, 0.9533),
+        ('female', 'treated_sbp_high', 0.068, 0.35, 0.9533),
+        ('female', 'smoker', 0.541, 0.15, 0.9533),
+        ('female', 'diabetic', 0.947, 0.12, 0.9533),
+        ('female', 'non_hdl', 0.237, 3.4, 0.9533),
+        ('female', 'hdl_scaled', -0.177, 4.74, 0.9533),
+        ('female', 'egfr_low_decrease', 0.175, 0.1, 0.9533),
+        ('female', 'egfr_high_decrease', 0.071, -1.67, 0.9533),
+        ('female', 'statin', -0.073, 0.18, 0.9533),
+        ('female', 'age_non_hdl', -0.036, 0.0, 0.9533),
+        ('female', 'age_hdl', 0.030, 0.0, 0.9533),
+        ('female', 'age_sbp_high', -0.015, 0.0, 0.9533),
+        ('female', 'age_treated_sbp_high', -0.010, 0.0, 0.9533),
+        ('female', 'age_smoker', -0.098, 0.0, 0.9533),
+        ('female', 'age_diabetic', -0.130, 0.0, 0.9533),
+        ('female', 'age_egfr_low', -0.023, 0.0, 0.9533),
+        ('female', 'bmi', 0.000, 27.0, 0.9533),
 
-    ('male', 'age_sqrt', 0.385, 6.245, 0.985),
-    ('male', 'log_sbp', 0.452, 4.867, 0.985),
-    ('male', 'total_chol', 0.003, 195.8, 0.985),
-    ('male', 'hdl_chol', -0.018, 48.5, 0.985),
-    ('male', 'smoker', 0.712, 0.22, 0.985),
-    ('male', 'diabetic', 0.385, 0.14, 0.985),
-    ('male', 'bp_treated', 0.198, 0.20, 0.985),
-    ('male', 'chol_treated', 0.145, 0.15, 0.985),
-    ('male', 'log_egfr', -0.198, 4.15, 0.985)
+        ('male', 'age_scaled', 0.804, 0.0, 0.9123),
+        ('male', 'sbp_low_decrease', 0.100, 0.2, 0.9123),
+        ('male', 'sbp_high', 0.180, 1.4, 0.9123),
+        ('male', 'treated_sbp_high', 0.050, 0.35, 0.9123),
+        ('male', 'smoker', 0.600, 0.22, 0.9123),
+        ('male', 'diabetic', 0.800, 0.14, 0.9123),
+        ('male', 'non_hdl', 0.250, 3.6, 0.9123),
+        ('male', 'hdl_scaled', -0.200, 4.2, 0.9123),
+        ('male', 'egfr_low_decrease', 0.200, 0.1, 0.9123),
+        ('male', 'egfr_high_decrease', 0.080, -1.67, 0.9123),
+        ('male', 'statin', -0.073, 0.15, 0.9123),
+        ('male', 'age_non_hdl', -0.040, 0.0, 0.9123),
+        ('male', 'age_hdl', 0.035, 0.0, 0.9123),
+        ('male', 'age_sbp_high', -0.020, 0.0, 0.9123),
+        ('male', 'age_treated_sbp_high', -0.015, 0.0, 0.9123),
+        ('male', 'age_smoker', -0.110, 0.0, 0.9123),
+        ('male', 'age_diabetic', -0.140, 0.0, 0.9123),
+        ('male', 'age_egfr_low', -0.030, 0.0, 0.9123),
+        ('male', 'bmi', 0.000, 27.0, 0.9123)
 ) AS v(sex, variable, beta_value, mean_value, base_survival_10yr)
 WHERE NOT EXISTS (SELECT 1 FROM ascvd_coefficients);

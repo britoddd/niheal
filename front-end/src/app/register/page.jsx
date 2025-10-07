@@ -53,7 +53,7 @@ const Register = () => {
   const textFieldStyle = "border-1 rounded-md pl-3 pr-3 p-2";
 
   return (
-    <div className="flex flex-col justify-center items-center h-screen p-8 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-gray-100 overflow-hidden -mt-16">
+    <div className="flex flex-col justify-center items-center h-screen p-8 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-gray-100 overflow-hidden -mt-16 bg-[url(/login_bg.png)] ">
       <div className="flex flex-col items-center justify-center bg-white p-15 rounded-3xl max-w-1/2 shadow-md">
         <h1 className="text-3xl font-bold">Register</h1>
         <div className="flex flex-col items-center justify-center">

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authAPI } from "../../lib/api";
+import Image from "next/image"
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -45,7 +46,8 @@ const Login = () => {
   const textFieldStyle = "border-1 rounded-md pl-3 pr-3 p-2";
 
   return (
-    <div className="flex flex-col justify-center items-center h-screen p-8 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-gray-100 overflow-hidden -mt-16">
+    <div className="flex flex-col justify-center items-center h-screen p-8 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-gray-100 overflow-hidden -mt-16 bg-[url(/login_bg.png)] ">
+    {/* <Image src="/login_bg.png" width={100} height={0} className=""/> */}
       <div className="flex flex-col items-center justify-center bg-white p-15 rounded-3xl max-w-1/2 shadow-md">
         <h1 className="text-3xl font-bold">Sign in</h1>
         <div className="flex flex-col items-center justify-center">

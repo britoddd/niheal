@@ -320,22 +320,41 @@ app.post("/api/calculate-cancer", checkNotAuthenticated, async (req, res) => {
         sex,
         // Common factors
         bmi,
+        // Cancer-specific factors
+        // Prostate
+        psa,
+        dre_abnormal,
+        african_american,
+        prior_biopsy,
+        family_history,
+        free_psa_percent,
+        // Lung
         smoking_years,
         cigarettes_per_day,
         years_since_quit,
-        alcohol_consumption,
-        family_history,
-        physical_activity,
-        // Cancer-specific factors
-        asbestos_exposure,
         copd,
-        age_first_birth,
+        personal_cancer_history,
+        education_years,
+        asbestos_exposure,
+        // Breast
         menarche_age,
-        menopausal_status,
+        age_first_birth,
+        first_degree_relatives,
+        breast_biopsies,
+        atypical_hyperplasia,
         hormone_therapy,
-        red_meat_consumption,
-        vegetable_consumption,
-        diet_fat
+        alcohol_consumption,
+        // Colorectal
+        smoking_pack_years,
+        alcohol_drinks_day,
+        red_meat_oz,
+        family_history_colon,
+        diabetes,
+        physical_activity,
+        aspirin_use,
+        multivitamin_use,
+        nsaid_use,
+        estrogen_use
     } = req.body;
 
     console.log('Received Cancer calculation request:', req.body);
@@ -369,21 +388,40 @@ app.post("/api/calculate-cancer", checkNotAuthenticated, async (req, res) => {
             age: parseInt(age),
             sex,
             bmi: parseFloat(calculatedBmi),
+            // Prostate factors
+            psa: psa ? parseFloat(psa) : null,
+            dre_abnormal: dre_abnormal || false,
+            african_american: african_american || false,
+            prior_biopsy: prior_biopsy || false,
+            family_history: family_history || false,
+            free_psa_percent: free_psa_percent ? parseFloat(free_psa_percent) : null,
+            // Lung factors
             smoking_years: smoking_years ? parseInt(smoking_years) : 0,
             cigarettes_per_day: cigarettes_per_day ? parseInt(cigarettes_per_day) : 0,
             years_since_quit: years_since_quit ? parseInt(years_since_quit) : 0,
-            alcohol_consumption: alcohol_consumption ? parseFloat(alcohol_consumption) : 0,
-            family_history: family_history ? 1 : 0,
-            physical_activity: physical_activity ? parseFloat(physical_activity) : 0,
-            asbestos_exposure: asbestos_exposure ? 1 : 0,
-            copd: copd ? 1 : 0,
-            age_first_birth: age_first_birth ? parseInt(age_first_birth) : null,
+            copd: copd || false,
+            personal_cancer_history: personal_cancer_history || false,
+            education_years: education_years ? parseInt(education_years) : null,
+            asbestos_exposure: asbestos_exposure || false,
+            // Breast factors
             menarche_age: menarche_age ? parseInt(menarche_age) : null,
-            menopausal_status: menopausal_status ? 1 : 0,
-            hormone_therapy: hormone_therapy ? 1 : 0,
-            red_meat_consumption: red_meat_consumption ? parseFloat(red_meat_consumption) : 0,
-            vegetable_consumption: vegetable_consumption ? parseFloat(vegetable_consumption) : 0,
-            diet_fat: diet_fat ? parseFloat(diet_fat) : 0
+            age_first_birth: age_first_birth ? parseInt(age_first_birth) : null,
+            first_degree_relatives: first_degree_relatives ? parseInt(first_degree_relatives) : 0,
+            breast_biopsies: breast_biopsies ? parseInt(breast_biopsies) : 0,
+            atypical_hyperplasia: atypical_hyperplasia || false,
+            hormone_therapy: hormone_therapy || false,
+            alcohol_consumption: alcohol_consumption ? parseFloat(alcohol_consumption) : 0,
+            // Colorectal factors
+            smoking_pack_years: smoking_pack_years ? parseInt(smoking_pack_years) : 0,
+            alcohol_drinks_day: alcohol_drinks_day ? parseFloat(alcohol_drinks_day) : 0,
+            red_meat_oz: red_meat_oz ? parseFloat(red_meat_oz) : 0,
+            family_history_colon: family_history_colon || false,
+            diabetes: diabetes || false,
+            physical_activity: physical_activity ? parseFloat(physical_activity) : 0,
+            aspirin_use: aspirin_use || false,
+            multivitamin_use: multivitamin_use || false,
+            nsaid_use: nsaid_use || false,
+            estrogen_use: estrogen_use || false
         };
 
         // Get coefficients for the specific cancer type

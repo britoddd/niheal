@@ -139,43 +139,55 @@ SELECT * FROM (
 ) AS v(sex, variable, beta_value, mean_value, base_survival_10yr)
 WHERE NOT EXISTS (SELECT 1 FROM ascvd_coefficients);
 
+-- Updated Cancer Coefficients based on research papers
 INSERT INTO cancer_coefficients (cancer_type, variable, beta_value, base_incidence)
 SELECT * FROM (
     VALUES
-        -- Lung Cancer Coefficients
-        ('lung', 'age', 0.065, 0.0012),
-        ('lung', 'smoking_years', 0.042, 0.0012),
-        ('lung', 'cigarettes_per_day', 0.038, 0.0012),
-        ('lung', 'years_since_quit', -0.035, 0.0012),
-        ('lung', 'asbestos_exposure', 0.210, 0.0012),
-        ('lung', 'family_history', 0.180, 0.0012),
-        ('lung', 'copd', 0.250, 0.0012),
+        -- Prostate Cancer Coefficients (PCPTRC 2.0 model)
+        ('prostate', 'age', 0.050, 0.038), -- 3.8% high-grade cancer incidence in PCPT
+        ('prostate', 'psa_log2', 0.710, 0.038), -- OR 2.02 for high-grade vs no cancer
+        ('prostate', 'dre_abnormal', 0.400, 0.038), -- OR 1.49 for high-grade vs no cancer
+        ('prostate', 'african_american', 1.040, 0.038), -- OR 2.83 for high-grade vs no cancer
+        ('prostate', 'prior_biopsy', -0.210, 0.038), -- OR 0.81 for high-grade vs no cancer
+        ('prostate', 'family_history', 0.223, 0.038), -- OR 1.25 for high-grade vs no cancer
+        ('prostate', 'free_psa_percent', -0.025, 0.038), -- Based on SABOR study
         
-        -- Breast Cancer Coefficients (for women)
-        ('breast', 'age', 0.055, 0.0085),
-        ('breast', 'bmi', 0.015, 0.0085),
-        ('breast', 'age_first_birth', -0.020, 0.0085),
-        ('breast', 'menarche_age', -0.025, 0.0085),
-        ('breast', 'menopausal_status', 0.180, 0.0085),
-        ('breast', 'hormone_therapy', 0.120, 0.0085),
-        ('breast', 'family_history', 0.450, 0.0085),
-        ('breast', 'alcohol_consumption', 0.080, 0.0085),
+        -- Lung Cancer Coefficients (PLCOm2012 model)
+        ('lung', 'age', 0.085, 0.0151), -- 1.51% 6-year risk threshold
+        ('lung', 'smoking_duration', 0.045, 0.0151),
+        ('lung', 'cigarettes_per_day', 0.038, 0.0151),
+        ('lung', 'quit_time', -0.040, 0.0151),
+        ('lung', 'bmi', -0.020, 0.0151),
+        ('lung', 'copd', 0.500, 0.0151),
+        ('lung', 'family_history_lung', 0.350, 0.0151),
+        ('lung', 'personal_cancer_history', 0.280, 0.0151),
+        ('lung', 'education', -0.150, 0.0151),
+        ('lung', 'asbestos_exposure', 0.420, 0.0151),
         
-        -- Colon Cancer Coefficients
-        ('colon', 'age', 0.060, 0.0040),
-        ('colon', 'bmi', 0.025, 0.0040),
-        ('colon', 'physical_activity', -0.030, 0.0040),
-        ('colon', 'red_meat_consumption', 0.090, 0.0040),
-        ('colon', 'vegetable_consumption', -0.035, 0.0040),
-        ('colon', 'family_history', 0.380, 0.0040),
-        ('colon', 'smoking', 0.150, 0.0040),
-        ('colon', 'alcohol_consumption', 0.070, 0.0040),
+        -- Breast Cancer Coefficients (Gail model)
+        ('breast', 'age', 0.055, 0.014), -- 1.4% 5-year risk in lifepool cohort
+        ('breast', 'age_menarche', -0.080, 0.014),
+        ('breast', 'age_first_birth', -0.035, 0.014),
+        ('breast', 'first_degree_relatives', 0.650, 0.014),
+        ('breast', 'breast_biopsies', 0.280, 0.014),
+        ('breast', 'atypical_hyperplasia', 0.890, 0.014),
+        ('breast', 'bmi', 0.018, 0.014),
+        ('breast', 'hormone_therapy', 0.320, 0.014),
+        ('breast', 'alcohol_consumption', 0.095, 0.014),
         
-        -- Prostate Cancer Coefficients (for men)
-        ('prostate', 'age', 0.085, 0.0120),
-        ('prostate', 'family_history', 0.520, 0.0120),
-        ('prostate', 'bmi', 0.018, 0.0120),
-        ('prostate', 'smoking', 0.120, 0.0120),
-        ('prostate', 'diet_fat', 0.095, 0.0120)
+        -- Colorectal Cancer Coefficients (CRC-PRO model)
+        ('colorectal', 'age', 0.090, 0.016), -- 1.6% 10-year risk in men
+        ('colorectal', 'bmi', 0.025, 0.016),
+        ('colorectal', 'smoking_pack_years', 0.035, 0.016),
+        ('colorectal', 'alcohol_drinks_day', 0.120, 0.016),
+        ('colorectal', 'red_meat_oz', 0.085, 0.016),
+        ('colorectal', 'family_history_colon', 0.315, 0.016),
+        ('colorectal', 'diabetes', 0.233, 0.016),
+        ('colorectal', 'physical_activity', -0.090, 0.016),
+        ('colorectal', 'aspirin_use', -0.210, 0.016),
+        ('colorectal', 'multivitamin_use', -0.192, 0.016),
+        ('colorectal', 'education_years', -0.070, 0.016),
+        ('colorectal', 'nsaid_use', -0.237, 0.016),
+        ('colorectal', 'estrogen_use', -0.245, 0.010) -- 1.0% 10-year risk in women
 ) AS v(cancer_type, variable, beta_value, base_incidence)
 WHERE NOT EXISTS (SELECT 1 FROM cancer_coefficients);

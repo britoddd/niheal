@@ -12,6 +12,7 @@ const path = require("path");
 const fs = require("fs");
 const ASCVDCalculator = require("./ascvd_calc");
 const CancerRiskCalculator = require("./cancer_calc");
+const KFRECalculator = require("./kfre_calc");
 
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -313,6 +314,7 @@ app.post("/api/calculate-ascvd", checkNotAuthenticated, async (req, res) => {
     }
 });
 
+// Calculate Cancer risk
 app.post("/api/calculate-cancer", checkNotAuthenticated, async (req, res) => {
     let {
         cancer_type,
@@ -424,6 +426,83 @@ app.post("/api/calculate-cancer", checkNotAuthenticated, async (req, res) => {
     } catch (err) {
         console.error("Cancer calculation error:", err);
         res.status(500).json({ message: "Error calculating cancer risk: " + err.message });
+    }
+});
+
+// Calculate KFRE risk
+app.post("/api/calculate-kfre", checkNotAuthenticated, async (req, res) => {
+    let {
+        age,
+        sex,
+        egfr,
+        acr,
+        model_type = 'standard'
+    } = req.body;
+
+    console.log('Received KFRE calculation request:', req.body);
+
+    try {
+        const inputs = {
+            age: parseInt(age),
+            sex,
+            egfr: parseFloat(egfr),
+            acr: parseFloat(acr)
+        };
+
+        let riskResult;
+        if (model_type === 'competing_risk') {
+            riskResult = KFRECalculator.calculateCompetingRisk(inputs);
+        } else {
+            // Try to get coefficients from database, fall back to hardcoded
+            try {
+                const coefficientsResult = await pool.query(
+                    `SELECT sex, variable, beta_value, base_survival_2yr, base_survival_5yr
+                     FROM kfre_coefficients WHERE sex = $1`,
+                    [sex]
+                );
+
+                console.log(`Found ${coefficientsResult.rows.length} coefficients for sex: ${sex}`);
+                
+                if (coefficientsResult.rows.length > 0) {
+                    riskResult = KFRECalculator.calculateRisk(inputs, coefficientsResult.rows);
+                } else {
+                    // Fall back to hardcoded coefficients
+                    console.log('No coefficients found in database, using hardcoded values');
+                    riskResult = KFRECalculator.calculateRisk(inputs);
+                }
+            } catch (dbError) {
+                console.log('Database error, using hardcoded coefficients:', dbError.message);
+                riskResult = KFRECalculator.calculateRisk(inputs);
+            }
+        }
+
+        // Save to test_results
+        const testResult = await pool.query(
+            `INSERT INTO test_results
+             (user_id, test_id, risk_percentage, risk_category, input_data, calculated_data)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, created_at`,
+            [
+                req.user.id,
+                3, // KFRE test ID
+                riskResult.risk_percentage,
+                riskResult.risk_category,
+                inputs,
+                riskResult
+            ]
+        );
+
+        res.json({
+            ...riskResult,
+            result_id: testResult.rows[0].id,
+            created_at: testResult.rows[0].created_at
+        });
+    } catch (err) {
+        console.error("KFRE calculation error:", err);
+        res.status(400).json({ 
+            message: "Error calculating KFRE risk: " + err.message,
+            errors: [err.message]
+        });
     }
 });
 

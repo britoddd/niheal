@@ -181,7 +181,7 @@ const Dashboard = () => {
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 w-[90%] sm:w-[600px] text-left hover:shadow-md transition">
             <div className="flex items-center gap-4">
               <img
-                src="/doctor.png"
+                src="/3d_avatar_17.png"
                 alt="Doctor"
                 width="80"
                 height="80"
@@ -230,7 +230,7 @@ const Dashboard = () => {
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 w-[90%] sm:w-[600px] text-left hover:shadow-md transition">
             <div className="flex items-center gap-4">
               <img
-                src="/doctor.png"
+                src="/3d_avatar_17.png"
                 alt="Doctor"
                 width="80"
                 height="80"

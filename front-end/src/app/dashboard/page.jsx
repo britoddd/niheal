@@ -93,6 +93,26 @@ const Dashboard = () => {
     }
   };
 
+  const handleKFRESubmit = async (formData) => {
+    setCalculating(true);
+    try {
+      const resultData = await apiCall('/api/calculate-kfre', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
+      setResult(resultData);
+
+      // Refresh history
+      const historyData = await apiCall('/api/test-history');
+      setTestHistory(historyData.history || []);
+    } catch (error) {
+      console.error('Error calculating KFRE risk:', error);
+      alert('Error calculating risk: ' + error.message);
+    } finally {
+      setCalculating(false);
+    }
+  };
+
   if (loading) return 'Loading...';
 
   return (
@@ -138,7 +158,7 @@ const Dashboard = () => {
       {selectedTest && (
         <section>
           <h3>{selectedTest.name} Risk Assessment</h3>
-          {selectedTest.name === 'ASCVD' && (
+          {selectedTest.name === 'Heart and Stroke' && (
             <ASCVDForm
               onSubmit={handleASCVDSubmit}
               calculating={calculating}
@@ -147,6 +167,12 @@ const Dashboard = () => {
           {selectedTest.name === 'Cancer' && (
             <CancerForm
               onSubmit={handleCancerSubmit}
+              calculating={calculating}
+            />
+          )}
+          {selectedTest.name === 'Urology/Kidney' && (
+            <KFREForm
+              onSubmit={handleKFRESubmit}
               calculating={calculating}
             />
           )}
@@ -164,6 +190,15 @@ const Dashboard = () => {
               <p>Risk Category: {result.risk_category}</p>
               {result.message && <p>{result.message}</p>}
               <p>Relative Risk: {result.relative_risk}x</p>
+            </>
+          ) : result.model_type ? (
+            // KFRE Results
+            <>
+              <p>2-Year Kidney Failure Risk: {result.risk_2year}%</p>
+              <p>5-Year Kidney Failure Risk: {result.risk_5year}%</p>
+              <p>Risk Category: {result.risk_category}</p>
+              {result.interpretation && <p>{result.interpretation}</p>}
+              {result.model_type && <p>Model: {result.model_type === 'competing_risk' ? 'Competing Risk Model' : 'Standard Model'}</p>}
             </>
           ) : (
             // ASCVD Results
@@ -661,6 +696,126 @@ const CancerForm = ({ onSubmit, calculating }) => {
 
       <button type="submit" disabled={calculating}>
         {calculating ? 'Calculating...' : 'Calculate Cancer Risk'}
+      </button>
+    </form>
+  );
+};
+
+// KFRE Form Component
+const KFREForm = ({ onSubmit, calculating }) => {
+  const [formData, setFormData] = useState({
+    age: '',
+    sex: 'male',
+    egfr: '',
+    acr: '',
+    egfr_slope: '',
+    heart_failure: false,
+    model_type: 'standard'
+  });
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Convert string values to numbers
+    const numericData = {
+      ...formData,
+      age: parseInt(formData.age) || 0,
+      egfr: parseFloat(formData.egfr) || 0,
+      acr: parseFloat(formData.acr) || 0,
+      egfr_slope: formData.egfr_slope ? parseFloat(formData.egfr_slope) : 0
+    };
+    onSubmit(numericData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label>
+        Age (18-100 years)
+        <input
+          type="number"
+          name="age"
+          value={formData.age}
+          onChange={handleChange}
+          min="18"
+          max="100"
+          required
+        />
+      </label>
+
+      <label>
+        Sex
+        <select name="sex" value={formData.sex} onChange={handleChange} required>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </label>
+
+      <label>
+        eGFR (mL/min/1.73 m²)
+        <input
+          type="number"
+          name="egfr"
+          value={formData.egfr}
+          onChange={handleChange}
+          min="15"
+          max="200"
+          step="0.1"
+          required
+        />
+      </label>
+
+      <label>
+        Urine Albumin-to-Creatinine Ratio (ACR, mg/g)
+        <input
+          type="number"
+          name="acr"
+          value={formData.acr}
+          onChange={handleChange}
+          min="1"
+          step="0.1"
+          required
+        />
+      </label>
+
+      <label>
+        eGFR Slope (ml/min/1.73 m² per year, optional)
+        <input
+          type="number"
+          name="egfr_slope"
+          value={formData.egfr_slope}
+          onChange={handleChange}
+          step="0.1"
+          placeholder="e.g., -2.5 for decline"
+        />
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          name="heart_failure"
+          checked={formData.heart_failure}
+          onChange={handleChange}
+        />
+        History of Heart Failure
+      </label>
+
+      <label>
+        Model Type
+        <select name="model_type" value={formData.model_type} onChange={handleChange}>
+          <option value="standard">Standard Model</option>
+          <option value="competing_risk">Competing Risk Model</option>
+        </select>
+      </label>
+
+      <button type="submit" disabled={calculating}>
+        {calculating ? 'Calculating...' : 'Calculate Kidney Failure Risk'}
       </button>
     </form>
   );

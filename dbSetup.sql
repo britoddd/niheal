@@ -84,10 +84,9 @@ CREATE TABLE IF NOT EXISTS cancer_coefficients (
 
 INSERT INTO risk_tests (id, name, description)
 SELECT id, name, description FROM (VALUES
-    (1, 'ASCVD', 'Atherosclerotic Cardiovascular Disease Risk Assessment (10-year risk)'),
+    (1, 'Heart and Stroke', 'ASCVD/Atherosclerotic Cardiovascular Disease Risk Assessment (10-year risk)'),
     (2, 'Cancer', 'Cancer Risk Assessment'),
-    (3, 'Stroke', 'Stroke Risk Assessment'),
-    (4, 'Urology', 'Urological Diseases Risk Assessment')
+    (3, 'Urology/Kidney', 'Kidney Failure Risk Equation - Predicts 2-year and 5-year risk of end-stage kidney disease')
 ) AS v(id, name, description)
 WHERE NOT EXISTS (
     SELECT 1 FROM risk_tests r WHERE r.id = v.id OR r.name = v.name

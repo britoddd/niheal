@@ -12,6 +12,7 @@ const path = require("path");
 const fs = require("fs");
 const ASCVDCalculator = require("./ascvd_calc");
 const CancerRiskCalculator = require("./cancer_calc");
+const KFRECalculator = require("./kfre_calc");
 
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -313,6 +314,7 @@ app.post("/api/calculate-ascvd", checkNotAuthenticated, async (req, res) => {
     }
 });
 
+// Calculate Cancer risk
 app.post("/api/calculate-cancer", checkNotAuthenticated, async (req, res) => {
     let {
         cancer_type,
@@ -424,6 +426,68 @@ app.post("/api/calculate-cancer", checkNotAuthenticated, async (req, res) => {
     } catch (err) {
         console.error("Cancer calculation error:", err);
         res.status(500).json({ message: "Error calculating cancer risk: " + err.message });
+    }
+});
+
+// Calculate KFRE risk
+app.post("/api/calculate-kfre", checkNotAuthenticated, async (req, res) => {
+    let {
+        age,
+        sex,
+        egfr,
+        acr,
+        egfr_slope,
+        heart_failure,
+        model_type = 'standard'
+    } = req.body;
+
+    console.log('Received KFRE calculation request:', req.body);
+
+    try {
+        const inputs = {
+            age: parseInt(age),
+            sex,
+            egfr: parseFloat(egfr),
+            acr: parseFloat(acr),
+            egfr_slope: egfr_slope ? parseFloat(egfr_slope) : 0,
+            heart_failure: heart_failure || false
+        };
+
+        let riskResult;
+        if (model_type === 'competing_risk') {
+            riskResult = KFRECalculator.calculateCompetingRisk(inputs);
+        } else {
+            riskResult = KFRECalculator.calculateRisk(inputs);
+        }
+
+        // Save to test_results
+        const testResult = await pool.query(
+            `INSERT INTO test_results
+             (user_id, test_id, risk_percentage, risk_category, input_data, calculated_data)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, created_at`,
+            [
+                req.user.id,
+                3, // KFRE test ID
+                riskResult.risk_percentage,
+                riskResult.risk_category,
+                inputs,
+                riskResult
+            ]
+        );
+
+        res.json({
+            ...riskResult,
+            result_id: testResult.rows[0].id,
+            created_at: testResult.rows[0].created_at,
+            model_type: model_type
+        });
+    } catch (err) {
+        console.error("KFRE calculation error:", err);
+        res.status(400).json({ 
+            message: "Error calculating KFRE risk: " + err.message,
+            errors: [err.message]
+        });
     }
 });
 

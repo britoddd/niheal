@@ -73,6 +73,26 @@ const Dashboard = () => {
     }
   };
 
+  const handleCancerSubmit = async (formData) => {
+    setCalculating(true);
+    try {
+      const resultData = await apiCall('/api/calculate-cancer', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
+      setResult(resultData);
+
+      // Refresh history
+      const historyData = await apiCall('/api/test-history');
+      setTestHistory(historyData.history || []);
+    } catch (error) {
+      console.error('Error calculating cancer risk:', error);
+      alert('Error calculating risk: ' + error.message);
+    } finally {
+      setCalculating(false);
+    }
+  };
+
   if (loading) return 'Loading...';
 
   return (
@@ -124,6 +144,12 @@ const Dashboard = () => {
               calculating={calculating}
             />
           )}
+          {selectedTest.name === 'Cancer' && (
+            <CancerForm
+              onSubmit={handleCancerSubmit}
+              calculating={calculating}
+            />
+          )}
         </section>
       )}
 
@@ -131,10 +157,23 @@ const Dashboard = () => {
       {result && (
         <section>
           <h3>Test Results</h3>
-          <p>10-Year ASCVD Risk: {result.risk_percentage}%</p>
-          <p>Risk Category: {result.risk_category}</p>
-          {result.message && <p>{result.message}</p>}
-          {result.interpretation && <p>{result.interpretation}</p>}
+          {result.cancer_type ? (
+            // Cancer Results
+            <>
+              <p>{result.cancer_type.charAt(0).toUpperCase() + result.cancer_type.slice(1)} Cancer Risk: {result.risk_percentage}%</p>
+              <p>Risk Category: {result.risk_category}</p>
+              {result.message && <p>{result.message}</p>}
+              <p>Relative Risk: {result.relative_risk}x</p>
+            </>
+          ) : (
+            // ASCVD Results
+            <>
+              <p>10-Year ASCVD Risk: {result.risk_percentage}%</p>
+              <p>Risk Category: {result.risk_category}</p>
+              {result.message && <p>{result.message}</p>}
+              {result.interpretation && <p>{result.interpretation}</p>}
+            </>
+          )}
           <p>
             Calculated on:{' '}
             {new Date(result.created_at).toLocaleDateString()}
@@ -311,6 +350,317 @@ const ASCVDForm = ({ onSubmit, calculating }) => {
 
       <button type="submit" disabled={calculating}>
         {calculating ? 'Calculating...' : 'Calculate ASCVD Risk'}
+      </button>
+    </form>
+  );
+};
+
+// Cancer Form Component
+const CancerForm = ({ onSubmit, calculating }) => {
+  const [formData, setFormData] = useState({
+    cancer_type: 'lung',
+    age: '',
+    sex: 'male',
+    bmi: '',
+    smoking_years: '',
+    cigarettes_per_day: '',
+    years_since_quit: '',
+    alcohol_consumption: '',
+    family_history: false,
+    physical_activity: '',
+    // Lung cancer specific
+    asbestos_exposure: false,
+    copd: false,
+    // Breast cancer specific
+    age_first_birth: '',
+    menarche_age: '',
+    menopausal_status: false,
+    hormone_therapy: false,
+    // Colon cancer specific
+    red_meat_consumption: '',
+    vegetable_consumption: '',
+    // Prostate cancer specific
+    diet_fat: ''
+  });
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Convert string values to numbers where appropriate
+    const processedData = {
+      ...formData,
+      age: parseInt(formData.age) || 0,
+      bmi: parseFloat(formData.bmi) || 0,
+      smoking_years: parseInt(formData.smoking_years) || 0,
+      cigarettes_per_day: parseInt(formData.cigarettes_per_day) || 0,
+      years_since_quit: parseInt(formData.years_since_quit) || 0,
+      alcohol_consumption: parseFloat(formData.alcohol_consumption) || 0,
+      physical_activity: parseFloat(formData.physical_activity) || 0,
+      age_first_birth: formData.age_first_birth ? parseInt(formData.age_first_birth) : null,
+      menarche_age: formData.menarche_age ? parseInt(formData.menarche_age) : null,
+      red_meat_consumption: parseFloat(formData.red_meat_consumption) || 0,
+      vegetable_consumption: parseFloat(formData.vegetable_consumption) || 0,
+      diet_fat: parseFloat(formData.diet_fat) || 0
+    };
+    onSubmit(processedData);
+  };
+
+  const renderCommonFields = () => (
+    <>
+      <label>
+        Age (18-100 years)
+        <input
+          type="number"
+          name="age"
+          value={formData.age}
+          onChange={handleChange}
+          min="18"
+          max="100"
+          required
+        />
+      </label>
+
+      <label>
+        Sex
+        <select name="sex" value={formData.sex} onChange={handleChange} required>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </label>
+
+      <label>
+        BMI
+        <input
+          type="number"
+          name="bmi"
+          value={formData.bmi}
+          onChange={handleChange}
+          step="0.1"
+          min="15"
+          max="50"
+        />
+      </label>
+
+      <label>
+        Smoking History (years)
+        <input
+          type="number"
+          name="smoking_years"
+          value={formData.smoking_years}
+          onChange={handleChange}
+          min="0"
+          max="80"
+        />
+      </label>
+
+      <label>
+        Cigarettes per Day (if smoker)
+        <input
+          type="number"
+          name="cigarettes_per_day"
+          value={formData.cigarettes_per_day}
+          onChange={handleChange}
+          min="0"
+          max="100"
+        />
+      </label>
+
+      <label>
+        Years Since Quit (if former smoker)
+        <input
+          type="number"
+          name="years_since_quit"
+          value={formData.years_since_quit}
+          onChange={handleChange}
+          min="0"
+          max="80"
+        />
+      </label>
+
+      <label>
+        Alcohol Consumption (drinks/week)
+        <input
+          type="number"
+          name="alcohol_consumption"
+          value={formData.alcohol_consumption}
+          onChange={handleChange}
+          step="0.1"
+          min="0"
+          max="50"
+        />
+      </label>
+
+      <label>
+        Physical Activity (hours/week)
+        <input
+          type="number"
+          name="physical_activity"
+          value={formData.physical_activity}
+          onChange={handleChange}
+          step="0.1"
+          min="0"
+          max="50"
+        />
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          name="family_history"
+          checked={formData.family_history}
+          onChange={handleChange}
+        />
+        Family History of Cancer
+      </label>
+    </>
+  );
+
+  const renderLungCancerFields = () => (
+    <>
+      <label>
+        <input
+          type="checkbox"
+          name="asbestos_exposure"
+          checked={formData.asbestos_exposure}
+          onChange={handleChange}
+        />
+        Asbestos Exposure
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          name="copd"
+          checked={formData.copd}
+          onChange={handleChange}
+        />
+        COPD Diagnosis
+      </label>
+    </>
+  );
+
+  const renderBreastCancerFields = () => (
+    <>
+      <label>
+        Age at First Birth
+        <input
+          type="number"
+          name="age_first_birth"
+          value={formData.age_first_birth}
+          onChange={handleChange}
+          min="15"
+          max="50"
+        />
+      </label>
+
+      <label>
+        Age at Menarche
+        <input
+          type="number"
+          name="menarche_age"
+          value={formData.menarche_age}
+          onChange={handleChange}
+          min="8"
+          max="20"
+        />
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          name="menopausal_status"
+          checked={formData.menopausal_status}
+          onChange={handleChange}
+        />
+        Post-Menopausal
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          name="hormone_therapy"
+          checked={formData.hormone_therapy}
+          onChange={handleChange}
+        />
+        Hormone Therapy
+      </label>
+    </>
+  );
+
+  const renderColonCancerFields = () => (
+    <>
+      <label>
+        Red Meat Consumption (servings/week)
+        <input
+          type="number"
+          name="red_meat_consumption"
+          value={formData.red_meat_consumption}
+          onChange={handleChange}
+          step="0.1"
+          min="0"
+          max="20"
+        />
+      </label>
+
+      <label>
+        Vegetable Consumption (servings/day)
+        <input
+          type="number"
+          name="vegetable_consumption"
+          value={formData.vegetable_consumption}
+          onChange={handleChange}
+          step="0.1"
+          min="0"
+          max="10"
+        />
+      </label>
+    </>
+  );
+
+  const renderProstateCancerFields = () => (
+    <>
+      <label>
+        High-Fat Diet (scale 1-10)
+        <input
+          type="number"
+          name="diet_fat"
+          value={formData.diet_fat}
+          onChange={handleChange}
+          min="1"
+          max="10"
+        />
+      </label>
+    </>
+  );
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label>
+        Cancer Type
+        <select name="cancer_type" value={formData.cancer_type} onChange={handleChange} required>
+          <option value="lung">Lung Cancer</option>
+          <option value="breast">Breast Cancer</option>
+          <option value="colon">Colon Cancer</option>
+          <option value="prostate">Prostate Cancer</option>
+        </select>
+      </label>
+
+      {renderCommonFields()}
+
+      {formData.cancer_type === 'lung' && renderLungCancerFields()}
+      {formData.cancer_type === 'breast' && renderBreastCancerFields()}
+      {formData.cancer_type === 'colon' && renderColonCancerFields()}
+      {formData.cancer_type === 'prostate' && renderProstateCancerFields()}
+
+      <button type="submit" disabled={calculating}>
+        {calculating ? 'Calculating...' : 'Calculate Cancer Risk'}
       </button>
     </form>
   );

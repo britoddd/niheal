@@ -436,8 +436,6 @@ app.post("/api/calculate-kfre", checkNotAuthenticated, async (req, res) => {
         sex,
         egfr,
         acr,
-        egfr_slope,
-        heart_failure,
         model_type = 'standard'
     } = req.body;
 
@@ -448,16 +446,34 @@ app.post("/api/calculate-kfre", checkNotAuthenticated, async (req, res) => {
             age: parseInt(age),
             sex,
             egfr: parseFloat(egfr),
-            acr: parseFloat(acr),
-            egfr_slope: egfr_slope ? parseFloat(egfr_slope) : 0,
-            heart_failure: heart_failure || false
+            acr: parseFloat(acr)
         };
 
         let riskResult;
         if (model_type === 'competing_risk') {
             riskResult = KFRECalculator.calculateCompetingRisk(inputs);
         } else {
-            riskResult = KFRECalculator.calculateRisk(inputs);
+            // Try to get coefficients from database, fall back to hardcoded
+            try {
+                const coefficientsResult = await pool.query(
+                    `SELECT sex, variable, beta_value, base_survival_2yr, base_survival_5yr
+                     FROM kfre_coefficients WHERE sex = $1`,
+                    [sex]
+                );
+
+                console.log(`Found ${coefficientsResult.rows.length} coefficients for sex: ${sex}`);
+                
+                if (coefficientsResult.rows.length > 0) {
+                    riskResult = KFRECalculator.calculateRisk(inputs, coefficientsResult.rows);
+                } else {
+                    // Fall back to hardcoded coefficients
+                    console.log('No coefficients found in database, using hardcoded values');
+                    riskResult = KFRECalculator.calculateRisk(inputs);
+                }
+            } catch (dbError) {
+                console.log('Database error, using hardcoded coefficients:', dbError.message);
+                riskResult = KFRECalculator.calculateRisk(inputs);
+            }
         }
 
         // Save to test_results
@@ -479,8 +495,7 @@ app.post("/api/calculate-kfre", checkNotAuthenticated, async (req, res) => {
         res.json({
             ...riskResult,
             result_id: testResult.rows[0].id,
-            created_at: testResult.rows[0].created_at,
-            model_type: model_type
+            created_at: testResult.rows[0].created_at
         });
     } catch (err) {
         console.error("KFRE calculation error:", err);

@@ -708,8 +708,6 @@ const KFREForm = ({ onSubmit, calculating }) => {
     sex: 'male',
     egfr: '',
     acr: '',
-    egfr_slope: '',
-    heart_failure: false,
     model_type: 'standard'
   });
 
@@ -729,13 +727,19 @@ const KFREForm = ({ onSubmit, calculating }) => {
       age: parseInt(formData.age) || 0,
       egfr: parseFloat(formData.egfr) || 0,
       acr: parseFloat(formData.acr) || 0,
-      egfr_slope: formData.egfr_slope ? parseFloat(formData.egfr_slope) : 0
     };
     onSubmit(numericData);
   };
 
   return (
     <form onSubmit={handleSubmit}>
+      <div>
+        <strong>Standard Kidney Failure Risk Equation (KFRE)</strong>
+        <p>
+          Based on validated 4-variable model (Age, Sex, eGFR, ACR) from Tangri et al. 2011
+        </p>
+      </div>
+
       <label>
         Age (18-100 years)
         <input
@@ -785,32 +789,10 @@ const KFREForm = ({ onSubmit, calculating }) => {
       </label>
 
       <label>
-        eGFR Slope (ml/min/1.73 m² per year, optional)
-        <input
-          type="number"
-          name="egfr_slope"
-          value={formData.egfr_slope}
-          onChange={handleChange}
-          step="0.1"
-          placeholder="e.g., -2.5 for decline"
-        />
-      </label>
-
-      <label>
-        <input
-          type="checkbox"
-          name="heart_failure"
-          checked={formData.heart_failure}
-          onChange={handleChange}
-        />
-        History of Heart Failure
-      </label>
-
-      <label>
         Model Type
         <select name="model_type" value={formData.model_type} onChange={handleChange}>
-          <option value="standard">Standard Model</option>
-          <option value="competing_risk">Competing Risk Model</option>
+          <option value="standard">Standard KFRE Model</option>
+          <option value="competing_risk">Competing Risk Model (Research)</option>
         </select>
       </label>
 

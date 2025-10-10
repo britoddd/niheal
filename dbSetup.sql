@@ -178,3 +178,31 @@ SELECT * FROM (
         ('prostate', 'diet_fat', 0.095, 0.0120)
 ) AS v(cancer_type, variable, beta_value, base_incidence)
 WHERE NOT EXISTS (SELECT 1 FROM cancer_coefficients);
+
+-- Add KFRE coefficients table
+CREATE TABLE IF NOT EXISTS kfre_coefficients (
+    id BIGSERIAL PRIMARY KEY NOT NULL,
+    sex VARCHAR(10) NOT NULL,
+    variable VARCHAR(50) NOT NULL,
+    beta_value NUMERIC(10,6) NOT NULL,
+    base_survival_2yr NUMERIC(10,6) NOT NULL,
+    base_survival_5yr NUMERIC(10,6) NOT NULL,
+    UNIQUE (sex, variable)
+);
+
+-- Insert KFRE coefficients (Tangri et al. 2011)
+INSERT INTO kfre_coefficients (sex, variable, beta_value, base_survival_2yr, base_survival_5yr)
+SELECT * FROM (
+    VALUES
+        -- Male coefficients
+        ('male', 'ln_age', 0.220, 0.987, 0.956),
+        ('male', 'ln_egfr', -1.242, 0.987, 0.956),
+        ('male', 'ln_acr', 0.451, 0.987, 0.956),
+        
+        -- Female coefficients  
+        ('female', 'ln_age', 0.246, 0.987, 0.956),
+        ('female', 'ln_egfr', -0.957, 0.987, 0.956),
+        ('female', 'ln_acr', 0.451, 0.987, 0.956),
+        ('female', 'female', -0.556, 0.987, 0.956)
+) AS v(sex, variable, beta_value, base_survival_2yr, base_survival_5yr)
+WHERE NOT EXISTS (SELECT 1 FROM kfre_coefficients);

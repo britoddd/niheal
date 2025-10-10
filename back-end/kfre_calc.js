@@ -1,72 +1,104 @@
 class KFRECalculator {
   static coefficients = {
-    // Original 4-variable model coefficients
-    age: -0.1598,
-    male: 0.2497,
-    egfr: -0.6063,
-    ln_acr: 0.4262,
-    
-    // Extended model coefficients (if needed)
-    egrf_slope: 0.285, // for slope < -3 ml/min/1.73 m² per year
-    heart_failure: 0.190, // HR ~1.21
+    // Standard 4-variable KFRE coefficients from Tangri et al. 2011
+    male: {
+      ln_age: 0.220,
+      ln_egfr: -1.242,
+      ln_acr: 0.451
+    },
+    female: {
+      ln_age: 0.246,
+      ln_egfr: -0.957,
+      ln_acr: 0.451,
+      female: -0.556
+    }
   };
 
-  static baselineSurvival5yr = 0.9832;
-  static baselineSurvival2yr = 0.996;
+  static baselineSurvival5yr = 0.956;
+  static baselineSurvival2yr = 0.987;
 
-  static calculateRisk({ age, sex, egfr, acr, egfr_slope, heart_failure }) {
+  static calculateRisk({ age, sex, egfr, acr }, dbCoefficients = null) {
     // Validate inputs
     const validationErrors = this.validateInputs({ age, sex, egfr, acr });
     if (validationErrors.length > 0) {
       throw new Error(validationErrors.join(', '));
     }
 
+    const ln_age = Math.log(age);
+    const ln_egfr = Math.log(egfr);
     const ln_acr = Math.log(acr);
     
-    // Calculate linear predictor for 5-year risk
-    const lp_5yr =
-      this.coefficients.age * (age / 10) +
-      (sex === 'male' ? this.coefficients.male : 0) +
-      this.coefficients.egfr * (egfr / 5) +
-      this.coefficients.ln_acr * ln_acr;
-
-    // Calculate linear predictor for 2-year risk
-    const lp_2yr = lp_5yr; // Same linear predictor, different baseline survival
-
-    // Calculate risks
-    const risk5yr = (1 - Math.pow(this.baselineSurvival5yr, Math.exp(lp_5yr))) * 100;
-    const risk2yr = (1 - Math.pow(this.baselineSurvival2yr, Math.exp(lp_2yr))) * 100;
-
-    // Apply extended model factors if provided
-    let adjustedRisk5yr = risk5yr;
-    let adjustedRisk2yr = risk2yr;
+    // Use database coefficients if provided, otherwise use hardcoded
+    const coeff = dbCoefficients ? this.parseDBCoefficients(dbCoefficients, sex) : this.coefficients[sex];
     
-    if (egfr_slope < -3) {
-      adjustedRisk5yr *= 1.32; // HR ~1.32 for rapid decline
-      adjustedRisk2yr *= 1.32;
-    }
+    console.log('Calculation inputs:', { age, sex, egfr, acr, ln_age, ln_egfr, ln_acr });
+    console.log('Coefficients used:', coeff);
+
+    // Calculate linear predictor using standard KFRE formula
+    let lp = 
+      coeff.ln_age * ln_age +
+      coeff.ln_egfr * ln_egfr +
+      coeff.ln_acr * ln_acr;
     
-    if (heart_failure) {
-      adjustedRisk5yr *= 1.21; // HR ~1.21 for heart failure
-      adjustedRisk2yr *= 1.21;
+    // Add female coefficient if applicable
+    if (sex === 'female') {
+      lp += coeff.female;
     }
+
+    console.log('Linear predictor (lp):', lp);
+    console.log('exp(lp):', Math.exp(lp));
+
+    // Calculate risks using Cox proportional hazards model
+    const risk5yr = (1 - Math.pow(this.baselineSurvival5yr, Math.exp(lp))) * 100;
+    const risk2yr = (1 - Math.pow(this.baselineSurvival2yr, Math.exp(lp))) * 100;
+
+    console.log('Calculated risks - 2yr:', risk2yr, '5yr:', risk5yr);
 
     // Determine risk category based on 5-year risk
     let risk_category = 'Low risk';
-    if (adjustedRisk5yr >= 15) {
+    if (risk5yr >= 15) {
       risk_category = 'High risk';
-    } else if (adjustedRisk5yr >= 5) {
+    } else if (risk5yr >= 5) {
       risk_category = 'Intermediate risk';
     }
 
     return {
-      risk_2year: adjustedRisk2yr.toFixed(2),
-      risk_5year: adjustedRisk5yr.toFixed(2),
-      risk_percentage: adjustedRisk5yr.toFixed(2),
+      risk_2year: risk2yr.toFixed(2),
+      risk_5year: risk5yr.toFixed(2),
+      risk_percentage: risk5yr.toFixed(2),
       risk_category,
-      linear_predictor: lp_5yr.toFixed(4),
-      interpretation: this.getInterpretation(risk_category)
+      linear_predictor: lp.toFixed(4),
+      interpretation: this.getInterpretation(risk_category),
+      model_type: 'standard_kfre'
     };
+  }
+
+  static parseDBCoefficients(dbCoefficients, sex) {
+    const coeff = {
+      ln_age: 0,
+      ln_egfr: 0,
+      ln_acr: 0,
+      female: 0
+    };
+
+    dbCoefficients.forEach(row => {
+      switch (row.variable) {
+        case 'ln_age':
+          coeff.ln_age = parseFloat(row.beta_value);
+          break;
+        case 'ln_egfr':
+          coeff.ln_egfr = parseFloat(row.beta_value);
+          break;
+        case 'ln_acr':
+          coeff.ln_acr = parseFloat(row.beta_value);
+          break;
+        case 'female':
+          coeff.female = parseFloat(row.beta_value);
+          break;
+      }
+    });
+
+    return coeff;
   }
 
   static getInterpretation(category) {
@@ -91,29 +123,35 @@ class KFRECalculator {
     return errors;
   }
 
-  // Method for competing risk model (advanced)
+  // Method for competing risk model (using simplified approach)
   static calculateCompetingRisk({ age, sex, egfr, acr }) {
-    // This implements the competing risk model with spline terms
+    const validationErrors = this.validateInputs({ age, sex, egfr, acr });
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors.join(', '));
+    }
+
+    const ln_age = Math.log(age);
+    const ln_egfr = Math.log(egfr);
     const ln_acr = Math.log(acr);
     
     // Simplified competing risk model coefficients
     const coeff = {
-      age: -0.300, // per 10 years
-      male: 0.260,
-      egfr_below45: -0.390, // per 5 ml/min higher below 45
-      egfr_above45: -0.170, // per 5 ml/min higher above 45
-      ln_acr: 0.400
+      ln_age: 0.180,
+      ln_egfr: -0.900,
+      ln_acr: 0.400,
+      female: -0.300
     };
 
-    const egfr_coeff = egfr < 45 ? coeff.egfr_below45 : coeff.egfr_above45;
-    
-    const lp = 
-      coeff.age * (age / 10) +
-      (sex === 'male' ? coeff.male : 0) +
-      egfr_coeff * (egfr / 5) +
+    let lp = 
+      coeff.ln_age * ln_age +
+      coeff.ln_egfr * ln_egfr +
       coeff.ln_acr * ln_acr;
+    
+    if (sex === 'female') {
+      lp += coeff.female;
+    }
 
-    const risk5yr = (1 - Math.pow(0.98, Math.exp(lp))) * 100; // Approximate baseline
+    const risk5yr = (1 - Math.pow(0.960, Math.exp(lp))) * 100;
 
     let risk_category = 'Low risk';
     if (risk5yr >= 15) risk_category = 'High risk';
@@ -123,7 +161,8 @@ class KFRECalculator {
       risk_5year: risk5yr.toFixed(2),
       risk_percentage: risk5yr.toFixed(2),
       risk_category,
-      model_type: 'competing_risk'
+      model_type: 'competing_risk',
+      interpretation: this.getInterpretation(risk_category)
     };
   }
 }

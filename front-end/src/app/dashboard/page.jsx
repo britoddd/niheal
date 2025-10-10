@@ -214,13 +214,30 @@ const Dashboard = () => {
 
         {/* === RESULT & HISTORY === */}
         {result && (
-          <section className="w-full max-w-xl mt-10 bg-green-50 border border-green-200 rounded-2xl shadow p-6 text-left">
-            <h3 className="text-lg font-bold mb-2">Test Results</h3>
-            <div className="text-sm text-gray-700">
-              {/* Existing result logic unchanged */}
+      <section className="w-full max-w-xl mt-10 bg-green-50 border border-green-200 rounded-2xl shadow p-6 text-left">
+        <h3 className="text-lg font-bold mb-2">Test Results</h3>
+        <div className="text-sm text-gray-700">
+          <p>
+            <strong>Test:</strong>{" "}
+            {selectedTest?.name || result.test_name || "No test selected"}
+          </p>
+          <p>
+            <strong>Risk Percentage:</strong>{" "}
+            {result.risk_percentage?.toFixed(2) ?? 0}%
+          </p>
+          <p>
+            <strong>Risk Category:</strong> {result.risk_category || "N/A"}
+          </p>
+
+          {result.additional_info && (
+            <div className="mt-2">
+              <strong>Notes:</strong>
+              <p>{result.additional_info}</p>
             </div>
-          </section>
-        )}
+          )}
+        </div>
+      </section>
+    )}
 
         {testHistory.length > 0 && (
           <section className="w-full max-w-xl mt-10 p-6 bg-gray-50 rounded-2xl shadow text-left">

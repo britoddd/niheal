@@ -69,6 +69,15 @@ CREATE TABLE IF NOT EXISTS ascvd_coefficients (
     UNIQUE (sex, variable)
 );
 
+CREATE TABLE IF NOT EXISTS cancer_coefficients (
+    id BIGSERIAL PRIMARY KEY NOT NULL,
+    cancer_type VARCHAR(100) NOT NULL,
+    variable VARCHAR(50) NOT NULL,
+    beta_value NUMERIC(10,6) NOT NULL,
+    base_incidence NUMERIC(10,6) NOT NULL,
+    UNIQUE (cancer_type, variable)
+);
+
 -- ========================================
 -- INSERT DEFAULT DATA SAFELY
 -- ========================================
@@ -129,3 +138,44 @@ SELECT * FROM (
         ('male', 'bmi', 0.000, 27.0, 0.9123)
 ) AS v(sex, variable, beta_value, mean_value, base_survival_10yr)
 WHERE NOT EXISTS (SELECT 1 FROM ascvd_coefficients);
+
+INSERT INTO cancer_coefficients (cancer_type, variable, beta_value, base_incidence)
+SELECT * FROM (
+    VALUES
+        -- Lung Cancer Coefficients
+        ('lung', 'age', 0.065, 0.0012),
+        ('lung', 'smoking_years', 0.042, 0.0012),
+        ('lung', 'cigarettes_per_day', 0.038, 0.0012),
+        ('lung', 'years_since_quit', -0.035, 0.0012),
+        ('lung', 'asbestos_exposure', 0.210, 0.0012),
+        ('lung', 'family_history', 0.180, 0.0012),
+        ('lung', 'copd', 0.250, 0.0012),
+        
+        -- Breast Cancer Coefficients (for women)
+        ('breast', 'age', 0.055, 0.0085),
+        ('breast', 'bmi', 0.015, 0.0085),
+        ('breast', 'age_first_birth', -0.020, 0.0085),
+        ('breast', 'menarche_age', -0.025, 0.0085),
+        ('breast', 'menopausal_status', 0.180, 0.0085),
+        ('breast', 'hormone_therapy', 0.120, 0.0085),
+        ('breast', 'family_history', 0.450, 0.0085),
+        ('breast', 'alcohol_consumption', 0.080, 0.0085),
+        
+        -- Colon Cancer Coefficients
+        ('colon', 'age', 0.060, 0.0040),
+        ('colon', 'bmi', 0.025, 0.0040),
+        ('colon', 'physical_activity', -0.030, 0.0040),
+        ('colon', 'red_meat_consumption', 0.090, 0.0040),
+        ('colon', 'vegetable_consumption', -0.035, 0.0040),
+        ('colon', 'family_history', 0.380, 0.0040),
+        ('colon', 'smoking', 0.150, 0.0040),
+        ('colon', 'alcohol_consumption', 0.070, 0.0040),
+        
+        -- Prostate Cancer Coefficients (for men)
+        ('prostate', 'age', 0.085, 0.0120),
+        ('prostate', 'family_history', 0.520, 0.0120),
+        ('prostate', 'bmi', 0.018, 0.0120),
+        ('prostate', 'smoking', 0.120, 0.0120),
+        ('prostate', 'diet_fat', 0.095, 0.0120)
+) AS v(cancer_type, variable, beta_value, base_incidence)
+WHERE NOT EXISTS (SELECT 1 FROM cancer_coefficients);

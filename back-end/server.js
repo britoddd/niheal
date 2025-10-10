@@ -11,6 +11,8 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const ASCVDCalculator = require("./ascvd_calc");
+const CancerRiskCalculator = require("./cancer_calc");
+const KFRECalculator = require("./kfre_calc");
 
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -309,6 +311,198 @@ app.post("/api/calculate-ascvd", checkNotAuthenticated, async (req, res) => {
     } catch (err) {
         console.error("ASCVD calculation error:", err);
         res.status(500).json({ message: "Error calculating ASCVD risk: " + err.message });
+    }
+});
+
+// Calculate Cancer risk
+app.post("/api/calculate-cancer", checkNotAuthenticated, async (req, res) => {
+    let {
+        cancer_type,
+        age,
+        sex,
+        // Common factors
+        bmi,
+        smoking_years,
+        cigarettes_per_day,
+        years_since_quit,
+        alcohol_consumption,
+        family_history,
+        physical_activity,
+        // Cancer-specific factors
+        asbestos_exposure,
+        copd,
+        age_first_birth,
+        menarche_age,
+        menopausal_status,
+        hormone_therapy,
+        red_meat_consumption,
+        vegetable_consumption,
+        diet_fat
+    } = req.body;
+
+    console.log('Received Cancer calculation request:', req.body);
+
+    // Validate inputs
+    const validationErrors = CancerRiskCalculator.validateInputs(req.body);
+    if (validationErrors.length > 0) {
+        console.log('Validation errors:', validationErrors);
+        return res.status(400).json({ errors: validationErrors });
+    }
+
+    try {
+        // Get profile for additional data
+        const profileResult = await pool.query(
+            `SELECT weight, height FROM profiles WHERE user_id = $1`,
+            [req.user.id]
+        );
+
+        // Calculate BMI if not provided
+        let calculatedBmi = bmi;
+        if (!calculatedBmi && profileResult.rows.length > 0) {
+            const { weight, height } = profileResult.rows[0];
+            if (weight && height && height > 0) {
+                calculatedBmi = weight / Math.pow(height / 100, 2);
+            }
+        }
+        if (!calculatedBmi) calculatedBmi = 25.0; // default
+
+        const inputs = {
+            cancer_type,
+            age: parseInt(age),
+            sex,
+            bmi: parseFloat(calculatedBmi),
+            smoking_years: smoking_years ? parseInt(smoking_years) : 0,
+            cigarettes_per_day: cigarettes_per_day ? parseInt(cigarettes_per_day) : 0,
+            years_since_quit: years_since_quit ? parseInt(years_since_quit) : 0,
+            alcohol_consumption: alcohol_consumption ? parseFloat(alcohol_consumption) : 0,
+            family_history: family_history ? 1 : 0,
+            physical_activity: physical_activity ? parseFloat(physical_activity) : 0,
+            asbestos_exposure: asbestos_exposure ? 1 : 0,
+            copd: copd ? 1 : 0,
+            age_first_birth: age_first_birth ? parseInt(age_first_birth) : null,
+            menarche_age: menarche_age ? parseInt(menarche_age) : null,
+            menopausal_status: menopausal_status ? 1 : 0,
+            hormone_therapy: hormone_therapy ? 1 : 0,
+            red_meat_consumption: red_meat_consumption ? parseFloat(red_meat_consumption) : 0,
+            vegetable_consumption: vegetable_consumption ? parseFloat(vegetable_consumption) : 0,
+            diet_fat: diet_fat ? parseFloat(diet_fat) : 0
+        };
+
+        // Get coefficients for the specific cancer type
+        const coefficientsResult = await pool.query(
+            `SELECT cancer_type, variable, beta_value, base_incidence
+             FROM cancer_coefficients WHERE cancer_type = $1`,
+            [cancer_type]
+        );
+
+        console.log(`Found ${coefficientsResult.rows.length} coefficients for cancer type: ${cancer_type}`);
+        if (coefficientsResult.rows.length === 0) {
+            return res.status(400).json({ message: "No coefficients found for the specified cancer type." });
+        }
+
+        const riskResult = CancerRiskCalculator.calculateRisk(inputs, coefficientsResult.rows);
+
+        // Save to test_results
+        const testResult = await pool.query(
+            `INSERT INTO test_results
+             (user_id, test_id, risk_percentage, risk_category, input_data, calculated_data)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, created_at`,
+            [
+                req.user.id,
+                2, // Cancer test ID
+                riskResult.risk_percentage,
+                riskResult.risk_category,
+                inputs,
+                riskResult
+            ]
+        );
+
+        res.json({
+            ...riskResult,
+            result_id: testResult.rows[0].id,
+            created_at: testResult.rows[0].created_at
+        });
+    } catch (err) {
+        console.error("Cancer calculation error:", err);
+        res.status(500).json({ message: "Error calculating cancer risk: " + err.message });
+    }
+});
+
+// Calculate KFRE risk
+app.post("/api/calculate-kfre", checkNotAuthenticated, async (req, res) => {
+    let {
+        age,
+        sex,
+        egfr,
+        acr,
+        model_type = 'standard'
+    } = req.body;
+
+    console.log('Received KFRE calculation request:', req.body);
+
+    try {
+        const inputs = {
+            age: parseInt(age),
+            sex,
+            egfr: parseFloat(egfr),
+            acr: parseFloat(acr)
+        };
+
+        let riskResult;
+        if (model_type === 'competing_risk') {
+            riskResult = KFRECalculator.calculateCompetingRisk(inputs);
+        } else {
+            // Try to get coefficients from database, fall back to hardcoded
+            try {
+                const coefficientsResult = await pool.query(
+                    `SELECT sex, variable, beta_value, base_survival_2yr, base_survival_5yr
+                     FROM kfre_coefficients WHERE sex = $1`,
+                    [sex]
+                );
+
+                console.log(`Found ${coefficientsResult.rows.length} coefficients for sex: ${sex}`);
+                
+                if (coefficientsResult.rows.length > 0) {
+                    riskResult = KFRECalculator.calculateRisk(inputs, coefficientsResult.rows);
+                } else {
+                    // Fall back to hardcoded coefficients
+                    console.log('No coefficients found in database, using hardcoded values');
+                    riskResult = KFRECalculator.calculateRisk(inputs);
+                }
+            } catch (dbError) {
+                console.log('Database error, using hardcoded coefficients:', dbError.message);
+                riskResult = KFRECalculator.calculateRisk(inputs);
+            }
+        }
+
+        // Save to test_results
+        const testResult = await pool.query(
+            `INSERT INTO test_results
+             (user_id, test_id, risk_percentage, risk_category, input_data, calculated_data)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, created_at`,
+            [
+                req.user.id,
+                3, // KFRE test ID
+                riskResult.risk_percentage,
+                riskResult.risk_category,
+                inputs,
+                riskResult
+            ]
+        );
+
+        res.json({
+            ...riskResult,
+            result_id: testResult.rows[0].id,
+            created_at: testResult.rows[0].created_at
+        });
+    } catch (err) {
+        console.error("KFRE calculation error:", err);
+        res.status(400).json({ 
+            message: "Error calculating KFRE risk: " + err.message,
+            errors: [err.message]
+        });
     }
 });
 

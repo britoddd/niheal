@@ -69,16 +69,24 @@ CREATE TABLE IF NOT EXISTS ascvd_coefficients (
     UNIQUE (sex, variable)
 );
 
+CREATE TABLE IF NOT EXISTS cancer_coefficients (
+    id BIGSERIAL PRIMARY KEY NOT NULL,
+    cancer_type VARCHAR(100) NOT NULL,
+    variable VARCHAR(50) NOT NULL,
+    beta_value NUMERIC(10,6) NOT NULL,
+    base_incidence NUMERIC(10,6) NOT NULL,
+    UNIQUE (cancer_type, variable)
+);
+
 -- ========================================
 -- INSERT DEFAULT DATA SAFELY
 -- ========================================
 
 INSERT INTO risk_tests (id, name, description)
 SELECT id, name, description FROM (VALUES
-    (1, 'ASCVD', 'Atherosclerotic Cardiovascular Disease Risk Assessment (10-year risk)'),
+    (1, 'Heart and Stroke', 'ASCVD/Atherosclerotic Cardiovascular Disease Risk Assessment (10-year risk)'),
     (2, 'Cancer', 'Cancer Risk Assessment'),
-    (3, 'Stroke', 'Stroke Risk Assessment'),
-    (4, 'Urology', 'Urological Diseases Risk Assessment')
+    (3, 'Urology/Kidney', 'Kidney Failure Risk Equation - Predicts 2-year and 5-year risk of end-stage kidney disease')
 ) AS v(id, name, description)
 WHERE NOT EXISTS (
     SELECT 1 FROM risk_tests r WHERE r.id = v.id OR r.name = v.name
@@ -129,3 +137,72 @@ SELECT * FROM (
         ('male', 'bmi', 0.000, 27.0, 0.9123)
 ) AS v(sex, variable, beta_value, mean_value, base_survival_10yr)
 WHERE NOT EXISTS (SELECT 1 FROM ascvd_coefficients);
+
+INSERT INTO cancer_coefficients (cancer_type, variable, beta_value, base_incidence)
+SELECT * FROM (
+    VALUES
+        -- Lung Cancer Coefficients
+        ('lung', 'age', 0.065, 0.0012),
+        ('lung', 'smoking_years', 0.042, 0.0012),
+        ('lung', 'cigarettes_per_day', 0.038, 0.0012),
+        ('lung', 'years_since_quit', -0.035, 0.0012),
+        ('lung', 'asbestos_exposure', 0.210, 0.0012),
+        ('lung', 'family_history', 0.180, 0.0012),
+        ('lung', 'copd', 0.250, 0.0012),
+        
+        -- Breast Cancer Coefficients (for women)
+        ('breast', 'age', 0.055, 0.0085),
+        ('breast', 'bmi', 0.015, 0.0085),
+        ('breast', 'age_first_birth', -0.020, 0.0085),
+        ('breast', 'menarche_age', -0.025, 0.0085),
+        ('breast', 'menopausal_status', 0.180, 0.0085),
+        ('breast', 'hormone_therapy', 0.120, 0.0085),
+        ('breast', 'family_history', 0.450, 0.0085),
+        ('breast', 'alcohol_consumption', 0.080, 0.0085),
+        
+        -- Colon Cancer Coefficients
+        ('colon', 'age', 0.060, 0.0040),
+        ('colon', 'bmi', 0.025, 0.0040),
+        ('colon', 'physical_activity', -0.030, 0.0040),
+        ('colon', 'red_meat_consumption', 0.090, 0.0040),
+        ('colon', 'vegetable_consumption', -0.035, 0.0040),
+        ('colon', 'family_history', 0.380, 0.0040),
+        ('colon', 'smoking', 0.150, 0.0040),
+        ('colon', 'alcohol_consumption', 0.070, 0.0040),
+        
+        -- Prostate Cancer Coefficients (for men)
+        ('prostate', 'age', 0.085, 0.0120),
+        ('prostate', 'family_history', 0.520, 0.0120),
+        ('prostate', 'bmi', 0.018, 0.0120),
+        ('prostate', 'smoking', 0.120, 0.0120),
+        ('prostate', 'diet_fat', 0.095, 0.0120)
+) AS v(cancer_type, variable, beta_value, base_incidence)
+WHERE NOT EXISTS (SELECT 1 FROM cancer_coefficients);
+
+-- Add KFRE coefficients table
+CREATE TABLE IF NOT EXISTS kfre_coefficients (
+    id BIGSERIAL PRIMARY KEY NOT NULL,
+    sex VARCHAR(10) NOT NULL,
+    variable VARCHAR(50) NOT NULL,
+    beta_value NUMERIC(10,6) NOT NULL,
+    base_survival_2yr NUMERIC(10,6) NOT NULL,
+    base_survival_5yr NUMERIC(10,6) NOT NULL,
+    UNIQUE (sex, variable)
+);
+
+-- Insert KFRE coefficients (Tangri et al. 2011)
+INSERT INTO kfre_coefficients (sex, variable, beta_value, base_survival_2yr, base_survival_5yr)
+SELECT * FROM (
+    VALUES
+        -- Male coefficients
+        ('male', 'ln_age', 0.220, 0.987, 0.956),
+        ('male', 'ln_egfr', -1.242, 0.987, 0.956),
+        ('male', 'ln_acr', 0.451, 0.987, 0.956),
+        
+        -- Female coefficients  
+        ('female', 'ln_age', 0.246, 0.987, 0.956),
+        ('female', 'ln_egfr', -0.957, 0.987, 0.956),
+        ('female', 'ln_acr', 0.451, 0.987, 0.956),
+        ('female', 'female', -0.556, 0.987, 0.956)
+) AS v(sex, variable, beta_value, base_survival_2yr, base_survival_5yr)
+WHERE NOT EXISTS (SELECT 1 FROM kfre_coefficients);

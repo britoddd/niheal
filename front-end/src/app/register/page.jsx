@@ -59,6 +59,18 @@ const Register = () => {
         <div className="flex flex-col items-center justify-center">
           <form onSubmit={handleSubmit} className="flex flex-col">
             <div className="flex flex-col">
+              <label for="name">Name</label>
+              <input
+                type="text"
+                name="name"
+                placeholder="Full name"
+                value={formData.name}
+                onChange={handleChange}
+                className={textFieldStyle}
+                required
+              />
+            </div>
+            <div className="flex flex-col mt-2">
               <label for="email">Email</label>
               <input
                 type="email"

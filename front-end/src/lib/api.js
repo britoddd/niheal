@@ -1,14 +1,15 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE_URL = 'http://localhost:4000';
 
 // Generic API call with auth handling
 const apiCall = async (endpoint, options = {}) => {
+  const { suppressAutoRedirect = false, headers = {}, ...restOptions } = options;
   const config = {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...headers,
     },
-    ...options,
+    ...restOptions,
   };
 
   // Use the correct URL structure: API_BASE_URL + endpoint (endpoint already includes /api)
@@ -17,15 +18,17 @@ const apiCall = async (endpoint, options = {}) => {
   if (!response.ok) {
     // Handle authentication errors
     if (response.status === 401) {
-      // Redirect to login if not authenticated (only in browser)
-      if (typeof window !== 'undefined') {
+      // Redirect to login if not authenticated (only in browser) unless suppressed
+      if (!suppressAutoRedirect && typeof window !== 'undefined') {
         window.location.href = '/login';
       }
       throw new Error('Not authenticated');
     }
-    
+
+    // Try to include the server JSON body in the thrown Error so callers can parse validation errors
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API call failed: ${response.status}`);
+    const payload = Object.keys(errorData).length ? JSON.stringify(errorData) : null;
+    throw new Error(payload || `API call failed: ${response.status}`);
   }
 
   return response.json();
@@ -53,7 +56,7 @@ export const authAPI = {
   },
 
   async getCurrentUser() {
-    return apiCall('/api/user');
+    return apiCall('/api/user', { suppressAutoRedirect: true });
   },
 
   async checkAPIStatus() {

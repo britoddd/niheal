@@ -53,8 +53,8 @@ const Dashboard = () => {
   };
 
   const handleTestSelect = (test) => {
-    setSelectedTest(test);
-    setResult(null);
+    // navigate to dedicated test page
+    router.push(`/tests/${test.id}`);
   };
 
   const refreshHistory = async () => {
@@ -117,19 +117,33 @@ const Dashboard = () => {
     if (!selectedTest) return null;
     const name = String(selectedTest.name || "").toLowerCase();
 
-    if (name.includes("heart") || name.includes("stroke") || name.includes("ascvd")) {
-      return <ASCVDForm onSubmit={handleASCVDSubmit} calculating={calculating} />;
+    if (
+      name.includes("heart") ||
+      name.includes("stroke") ||
+      name.includes("ascvd")
+    ) {
+      return (
+        <ASCVDForm onSubmit={handleASCVDSubmit} calculating={calculating} />
+      );
     }
     if (name.includes("cancer")) {
-      return <CancerForm onSubmit={handleCancerSubmit} calculating={calculating} />;
+      return (
+        <CancerForm onSubmit={handleCancerSubmit} calculating={calculating} />
+      );
     }
-    if (name.includes("kidney") || name.includes("urology") || name.includes("kfre")) {
+    if (
+      name.includes("kidney") ||
+      name.includes("urology") ||
+      name.includes("kfre")
+    ) {
       return <KFREForm onSubmit={handleKFRESubmit} calculating={calculating} />;
     }
 
     return (
       <div className="mt-4">
-        <p>No form available for: <strong>{selectedTest.name}</strong></p>
+        <p>
+          No form available for: <strong>{selectedTest.name}</strong>
+        </p>
       </div>
     );
   };
@@ -139,7 +153,6 @@ const Dashboard = () => {
   return (
     <section className="flex flex-col justify-center items-center min-h-screen p-8 sm:p-20 bg-gray-100 bg-[url(/login_bg.png)] bg-cover bg-center">
       <div className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl w-[1024px] shadow-lg">
-        
         {/* === PROFILE SECTION === */}
         <div className="flex flex-col items-center text-center mb-10 border-b border-gray-200 pb-6 w-full">
           <h1 className="text-4xl font-bold mb-3">
@@ -170,7 +183,10 @@ const Dashboard = () => {
           </div>
 
           {/* === Tes Resiko Penyakit === */}
-          <div onClick={toggleTests} className="cursor-pointer w-full flex justify-center">
+          <div
+            onClick={toggleTests}
+            className="cursor-pointer w-full flex justify-center"
+          >
             <Container
               title="Tes Resiko Penyakit"
               description={showTests ? "Tutup" : "Mulai Tes Sekarang"}
@@ -183,7 +199,7 @@ const Dashboard = () => {
               <div className="mt-5 space-y-3 pl-6">
                 {tests.map((test) => (
                   <div
-                    key={test.name}
+                    key={test.id}
                     onClick={() => handleTestSelect(test)}
                     className="border border-gray-200 rounded-xl p-3 hover:bg-blue-50 cursor-pointer"
                   >
@@ -214,30 +230,30 @@ const Dashboard = () => {
 
         {/* === RESULT & HISTORY === */}
         {result && (
-      <section className="w-full max-w-xl mt-10 bg-green-50 border border-green-200 rounded-2xl shadow p-6 text-left">
-        <h3 className="text-lg font-bold mb-2">Test Results</h3>
-        <div className="text-sm text-gray-700">
-          <p>
-            <strong>Test:</strong>{" "}
-            {selectedTest?.name || result.test_name || "No test selected"}
-          </p>
-          <p>
-            <strong>Risk Percentage:</strong>{" "}
-            {result.risk_percentage?.toFixed(2) ?? 0}%
-          </p>
-          <p>
-            <strong>Risk Category:</strong> {result.risk_category || "N/A"}
-          </p>
+          <section className="w-full max-w-xl mt-10 bg-green-50 border border-green-200 rounded-2xl shadow p-6 text-left">
+            <h3 className="text-lg font-bold mb-2">Test Results</h3>
+            <div className="text-sm text-gray-700">
+              <p>
+                <strong>Test:</strong>{" "}
+                {selectedTest?.name || result.test_name || "No test selected"}
+              </p>
+              <p>
+                <strong>Risk Percentage:</strong>{" "}
+                {result.risk_percentage?.toFixed(2) ?? 0}%
+              </p>
+              <p>
+                <strong>Risk Category:</strong> {result.risk_category || "N/A"}
+              </p>
 
-          {result.additional_info && (
-            <div className="mt-2">
-              <strong>Notes:</strong>
-              <p>{result.additional_info}</p>
+              {result.additional_info && (
+                <div className="mt-2">
+                  <strong>Notes:</strong>
+                  <p>{result.additional_info}</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </section>
-    )}
+          </section>
+        )}
 
         {testHistory.length > 0 && (
           <section className="w-full max-w-xl mt-10 p-6 bg-gray-50 rounded-2xl shadow text-left">
@@ -301,7 +317,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Age (18-100 years)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="age"
           value={formData.age}
@@ -313,7 +329,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Sex
         <select
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           id="sex"
           name="sex"
           value={formData.sex}
@@ -328,7 +344,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Systolic Blood Pressure (mmHg)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="systolic_bp"
           value={formData.systolic_bp}
@@ -340,7 +356,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Total Cholesterol (mg/dL)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="total_chol"
           value={formData.total_chol}
@@ -470,7 +486,9 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       age_first_birth: formData.age_first_birth
         ? parseInt(formData.age_first_birth)
         : null,
-      menarche_age: formData.menarche_age ? parseInt(formData.menarche_age) : null,
+      menarche_age: formData.menarche_age
+        ? parseInt(formData.menarche_age)
+        : null,
       red_meat_consumption: parseFloat(formData.red_meat_consumption) || 0,
       vegetable_consumption: parseFloat(formData.vegetable_consumption) || 0,
       diet_fat: parseFloat(formData.diet_fat) || 0,
@@ -483,7 +501,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Age (18-100 years)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="age"
           value={formData.age}
@@ -497,7 +515,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Sex
         <select
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           name="sex"
           value={formData.sex}
           onChange={handleChange}
@@ -511,7 +529,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         BMI
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="bmi"
           value={formData.bmi}
@@ -525,7 +543,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Smoking History (years)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="smoking_years"
           value={formData.smoking_years}
@@ -538,7 +556,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Cigarettes per Day (if smoker)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="cigarettes_per_day"
           value={formData.cigarettes_per_day}
@@ -551,7 +569,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Years Since Quit (if former smoker)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="years_since_quit"
           value={formData.years_since_quit}
@@ -564,7 +582,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Alcohol Consumption (drinks/week)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="alcohol_consumption"
           value={formData.alcohol_consumption}
@@ -578,7 +596,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Physical Activity (hours/week)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="physical_activity"
           value={formData.physical_activity}
@@ -630,7 +648,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Age at First Birth
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="age_first_birth"
           value={formData.age_first_birth}
@@ -643,7 +661,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Age at Menarche
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="menarche_age"
           value={formData.menarche_age}
@@ -712,7 +730,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         High-Fat Diet (scale 1-10)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="diet_fat"
           value={formData.diet_fat}
@@ -729,7 +747,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Cancer Type
         <select
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           name="cancer_type"
           value={formData.cancer_type}
           onChange={handleChange}
@@ -794,14 +812,15 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <div>
         <strong>Standard Kidney Failure Risk Equation (KFRE)</strong>
         <p className="text-sm text-gray-600">
-          Based on validated 4-variable model (Age, Sex, eGFR, ACR) from Tangri et al. 2011
+          Based on validated 4-variable model (Age, Sex, eGFR, ACR) from Tangri
+          et al. 2011
         </p>
       </div>
 
       <label className="block">
         Age (18-100 years)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="age"
           value={formData.age}
@@ -815,7 +834,7 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Sex
         <select
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           name="sex"
           value={formData.sex}
           onChange={handleChange}
@@ -829,7 +848,7 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <label className="block">
         eGFR (mL/min/1.73 m²)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="egfr"
           value={formData.egfr}
@@ -844,7 +863,7 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Urine Albumin-to-Creatinine Ratio (ACR, mg/g)
         <input
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           type="number"
           name="acr"
           value={formData.acr}
@@ -858,13 +877,15 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Model Type
         <select
-          className="block mt-1 w-full"
+          className="block mt-1 w-full border-1 border-gray-300"
           name="model_type"
           value={formData.model_type}
           onChange={handleChange}
         >
           <option value="standard">Standard KFRE Model</option>
-          <option value="competing_risk">Competing Risk Model (Research)</option>
+          <option value="competing_risk">
+            Competing Risk Model (Research)
+          </option>
         </select>
       </label>
 

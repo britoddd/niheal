@@ -7,7 +7,7 @@ export default function Navbar() {
   return (
     <nav className="border-b-1 border-gray-200 bg-white sticky top-0 w-full p-1">
       <div className="xl:max-w-[80rem] m-5 sm:max-w-5/6 flex flex-row justify-between mx-auto">
-        <a className="flex flex-row items-center gap-5" href="/">
+        <a className="flex flex-row items-center gap-5" href="/dashboard">
           <Image src="/niheal_logo.png" width={30} height={0} />
           <span className="font-semibold text-3xl">niHeal</span>
         </a>

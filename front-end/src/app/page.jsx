@@ -1,36 +1,43 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { authAPI } from '../lib/api';
+import Image from 'next/image';
+import { FaRegUserCircle } from 'react-icons/fa';
 
 const Index = () => {
-  const [apiStatus, setApiStatus] = useState('Checking...');
-  const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    const checkAPI = async () => {
-      try {
-        const response = await authAPI.checkAPIStatus();
-        setApiStatus(response.message);
-        setIsConnected(true);
-      } catch (error) {
-        setApiStatus('Backend not connected');
-        setIsConnected(false);
-      }
-    };
-
-    checkAPI();
-  }, []);
-
   return (
-    <div>
-      <h1>Home</h1>
-      <p>API Status: <span style={{ color: isConnected ? 'green' : 'red' }}>{apiStatus}</span></p>
-      <Link href="/login">Login</Link>
-      <br />
-      <Link href="/register">Register</Link>
-    </div>
+    <section className="flex flex-col justify-center items-center min-h-screen p-8 sm:p-20 bg-gray-100 bg-[url(/login_bg.png)] bg-cover bg-center">
+      <div className="flex flex-col items-center text-center pb-6 w-full">
+        <FaRegUserCircle className="text-[100px] text-gray-700 mb-4" />
+      </div>
+
+      <h1 className="text-4xl font-bold mb-10">Welcome to NiHeal</h1>
+
+      <div className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl w-[400px] shadow-lg gap-5">
+        <p className="text-gray-600 mb-3 text-center">
+          Edukasi.Deteksi.Aksi.
+        </p>
+
+        <Link
+          href="/login"
+          className="bg-blue-600 text-white px-6 py-3 rounded-xl w-full text-center hover:bg-blue-700 transition"
+        >
+          Login
+        </Link>
+
+        <Link
+          href="/register"
+          className="bg-gray-100 text-gray-800 px-6 py-3 rounded-xl w-full text-center hover:bg-gray-200 transition"
+        >
+          Register
+        </Link>
+
+        <div className="mt-6 text-sm text-gray-500">
+          <p>{new Date().getFullYear()} by "Ad Maiorem Dei Gloriam"</p>
+        </div>
+      </div>
+    </section>
   );
 };
 

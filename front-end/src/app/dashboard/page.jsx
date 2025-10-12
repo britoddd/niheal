@@ -5,8 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiCall } from "../../lib/api";
 import Container from "./container";
+import Image from "next/image";
+import { FaRegUserCircle } from "react-icons/fa";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+const inputStyle = "block mt-1 w-full border-1 border-gray-300 p-1";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -18,6 +22,7 @@ const Dashboard = () => {
   const [selectedTest, setSelectedTest] = useState(null);
   const [calculating, setCalculating] = useState(false);
   const [result, setResult] = useState(null);
+  const [showLearns, setShowLearns] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -50,6 +55,15 @@ const Dashboard = () => {
     setShowTests(!showTests);
     setSelectedTest(null);
     setResult(null);
+  };
+
+  const toggleLearning = () => {
+    setShowLearns(!showLearns);
+  };
+
+  const handleLearningSelect = (learning) => {
+    // navigate to dedicated ;learning page
+    router.push(`/learning/${learning.id}`);
   };
 
   const handleTestSelect = (test) => {
@@ -152,80 +166,110 @@ const Dashboard = () => {
 
   return (
     <section className="flex flex-col justify-center items-center min-h-screen p-8 sm:p-20 bg-gray-100 bg-[url(/login_bg.png)] bg-cover bg-center">
+      <h1 className="text-4xl font-bold mb-3 mt-5">
+        Selamat datang, {user?.name || "User"}
+      </h1>
+      <div className="flex flex-col items-center text-center mb-10 pb-6 w-full">
+        <Link href="/profile">
+          {profile.profile_picture ? (
+            <img
+              src={`${API_URL}${profile.profile_picture}`}
+              alt="Profile"
+              width="100"
+              height="100"
+              className="rounded-full border-2 border-gray-300 mt-2 hover:scale-105 transition-transform"
+            />
+          ) : (
+            <FaRegUserCircle className="text-[100px]" />
+          )}
+        </Link>
+      </div>
       <div className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl w-[1024px] shadow-lg">
-        {/* === PROFILE SECTION === */}
-        <div className="flex flex-col items-center text-center mb-10 border-b border-gray-200 pb-6 w-full">
-          <h1 className="text-4xl font-bold mb-3">
-            Selamat datang, {user?.name || "User"}
-          </h1>
-          <Link href="/profile">
-            {profile.profile_picture ? (
-              <img
-                src={`${API_URL}${profile.profile_picture}`}
-                alt="Profile"
-                width="100"
-                height="100"
-                className="rounded-full border-2 border-gray-300 mt-2 hover:scale-105 transition-transform"
-              />
-            ) : (
-              <button className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 mt-2">
-                Go to Profile
-              </button>
-            )}
-          </Link>
-        </div>
-
-        {/* === DISEASE SELECTION === */}
         <section className="w-full flex flex-col justify-center items-center gap-6">
           <div className="flex flex-col justify-center items-center">
-            <h2 className="text-2xl font-bold mb-0">Health Risk Assessment</h2>
-            <p className="text-gray-600">Mau apa hari ini?</p>
+            <h2 className="text-3xl font-bold mb-1 mt-2">Health Risk Assessment</h2>
+            <p className="text-gray-600 mb-3">Mau apa hari ini?</p>
           </div>
 
           {/* === Tes Resiko Penyakit === */}
           <div
             onClick={toggleTests}
-            className="cursor-pointer w-full flex justify-center"
+            className="cursor-pointer w-full flex justify-center border-t border-gray-200 pt-10"
           >
             <Container
               title="Tes Resiko Penyakit"
-              description={showTests ? "Tutup" : "Mulai Tes Sekarang"}
+              description={
+                showTests
+                  ? "Pilih tes yang ingin kamu uji"
+                  : "Mulai Tes Sekarang"
+              }
               source="/3d_avatar_17.png"
+              isStart={showTests}
             />
           </div>
 
           {showTests && (
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 w-[90%] sm:w-[600px] mt-2 text-left hover:shadow-md transition">
-              <div className="mt-5 space-y-3 pl-6">
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl shadow-sm p-6 w-[600px] sm:w-full mt-2 text-left hover:shadow-md transition">
+              <div className="space-y-3">
                 {tests.map((test) => (
                   <div
                     key={test.id}
                     onClick={() => handleTestSelect(test)}
-                    className="border border-gray-200 rounded-xl p-3 hover:bg-blue-50 cursor-pointer"
+                    className="border border-gray-200 rounded-xl p-5 hover:bg-blue-50 cursor-pointer bg-white flex flex-row gap-5"
                   >
-                    <strong className="block text-blue-700">{test.name}</strong>
-                    <p className="text-sm text-gray-600">{test.description}</p>
+                    <Image
+                      src="/3d_avatar_17.png"
+                      width={60}
+                      height={60}
+                      alt="Kidney"
+                    />
+                    <div className="flex flex-row justify-between w-full">
+                      <div className="flex flex-col justify-center">
+                        <strong className="block text-black">
+                          {test.name}
+                        </strong>
+                        <p className="text-sm text-gray-600">
+                          {test.description}
+                        </p>
+                      </div>
+                      <button className="bg-gray-100 pl-5 pr-5 rounded-md text-sm line hover:bg-blue-100">
+                        Mulai Tes
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-
-              {selectedTest && (
-                <div className="mt-6 p-4 border rounded-xl bg-gray-50">
-                  <h4 className="text-lg font-semibold mb-3">
-                    {selectedTest.name} Form
-                  </h4>
-                  {renderSelectedForm()}
-                </div>
-              )}
             </div>
           )}
 
           {/* === Interactive Learning === */}
-          <Container
-            title="Interactive Learning"
-            description="Orang keren"
-            source="/3d_avatar_17.png"
-          />
+          <div
+            onClick={toggleLearning}
+            className="cursor-pointer w-full flex justify-center"
+          >
+            {/* <Container
+              title="Tes Resiko Penyakit"
+              description={
+                showTests
+                  ? "Pilih tes yang ingin kamu uji"
+                  : "Mulai Tes Sekarang"
+              }
+              source="/3d_avatar_17.png"
+              isStart={showTests}
+            /> */}
+            <Container
+              title="Interactive Learning"
+              description="Belajar tentang kesehatan di sini!"
+              source="/3d_avatar_20.png"
+              isStart={showLearns}
+            />
+          </div>
+
+          {showLearns && (
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl shadow-sm p-6 w-[600px] sm:w-full mt-2 text-left hover:shadow-md transition">
+              <div className="space-y-3"></div>
+            </div>
+          )}
         </section>
 
         {/* === RESULT & HISTORY === */}
@@ -312,12 +356,14 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
     onSubmit(numericData);
   };
 
+  const inputStyle = "block mt-1 w-full border-1 border-gray-300 p-1";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <label className="block">
         Age (18-100 years)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="age"
           value={formData.age}
@@ -329,7 +375,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Sex
         <select
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           id="sex"
           name="sex"
           value={formData.sex}
@@ -344,7 +390,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Systolic Blood Pressure (mmHg)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="systolic_bp"
           value={formData.systolic_bp}
@@ -356,7 +402,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Total Cholesterol (mg/dL)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="total_chol"
           value={formData.total_chol}
@@ -368,7 +414,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         HDL Cholesterol (mg/dL)
         <input
-          className="block mt-1 w-full"
+          className={inputStyle}
           type="number"
           name="hdl_chol"
           value={formData.hdl_chol}
@@ -380,7 +426,7 @@ export const ASCVDForm = ({ onSubmit, calculating }) => {
       <label className="block">
         eGFR (mL/min/1.73m²)
         <input
-          className="block mt-1 w-full"
+          className={inputStyle}
           type="number"
           name="egfr"
           value={formData.egfr}
@@ -501,7 +547,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Age (18-100 years)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="age"
           value={formData.age}
@@ -515,7 +561,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Sex
         <select
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           name="sex"
           value={formData.sex}
           onChange={handleChange}
@@ -529,7 +575,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         BMI
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="bmi"
           value={formData.bmi}
@@ -543,7 +589,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Smoking History (years)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="smoking_years"
           value={formData.smoking_years}
@@ -556,7 +602,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Cigarettes per Day (if smoker)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="cigarettes_per_day"
           value={formData.cigarettes_per_day}
@@ -569,7 +615,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Years Since Quit (if former smoker)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="years_since_quit"
           value={formData.years_since_quit}
@@ -582,7 +628,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Alcohol Consumption (drinks/week)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="alcohol_consumption"
           value={formData.alcohol_consumption}
@@ -596,7 +642,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Physical Activity (hours/week)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="physical_activity"
           value={formData.physical_activity}
@@ -747,7 +793,7 @@ export const CancerForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Cancer Type
         <select
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           name="cancer_type"
           value={formData.cancer_type}
           onChange={handleChange}
@@ -807,6 +853,8 @@ export const KFREForm = ({ onSubmit, calculating }) => {
     onSubmit(numericData);
   };
 
+  const inputStyle = "block mt-1 w-full border-1 border-gray-300 p-1";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
@@ -820,7 +868,7 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Age (18-100 years)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="age"
           value={formData.age}
@@ -834,7 +882,7 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Sex
         <select
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           name="sex"
           value={formData.sex}
           onChange={handleChange}
@@ -848,7 +896,7 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <label className="block">
         eGFR (mL/min/1.73 m²)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="egfr"
           value={formData.egfr}
@@ -863,7 +911,7 @@ export const KFREForm = ({ onSubmit, calculating }) => {
       <label className="block">
         Urine Albumin-to-Creatinine Ratio (ACR, mg/g)
         <input
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           type="number"
           name="acr"
           value={formData.acr}
@@ -874,10 +922,10 @@ export const KFREForm = ({ onSubmit, calculating }) => {
         />
       </label>
 
-      <label className="block">
+      <label className="block flex flex-col">
         Model Type
         <select
-          className="block mt-1 w-full border-1 border-gray-300"
+          className={inputStyle}
           name="model_type"
           value={formData.model_type}
           onChange={handleChange}

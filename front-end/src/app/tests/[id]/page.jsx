@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { apiCall } from "../../../lib/api";
 import { ASCVDForm, CancerForm, KFREForm } from "../../dashboard/page";
+import Link from "next/link";
 
 const TestPage = () => {
   const router = useRouter();
@@ -106,30 +107,40 @@ const TestPage = () => {
   if (!test) return <div>Loading test...</div>;
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">{test.name}</h1>
-      <p className="mb-4">{test.description}</p>
-      <div className="bg-white p-6 rounded shadow">{renderForm()}</div>
-
-      {result && (
-        <div className="mt-6 bg-green-50 p-4 rounded">
-          <h3 className="font-bold">Result</h3>
-          <div className="text-sm text-gray-700">
-            <p>
-              <strong>Risk Percentage:</strong>{" "}
-              {!isNaN(Number(result?.risk_percentage))
-                ? `${Number(result.risk_percentage).toFixed(2)}%`
-                : result?.risk_percentage ?? "N/A"}
-            </p>
-            <p>
-              <strong>Risk Category:</strong> {result?.risk_category || "N/A"}
-            </p>
-            <p>
-              <strong>Interpretation:</strong> {result?.interpretation || "N/A"}
-            </p>
-          </div>
+    <div className="w-full flex justify-center items-center bg-[url(/login_bg.png)] bg-cover bg-center h-screen">
+      <div className="p-8 flex justify-center flex-col items-center w-full max-w-[524px]">
+        <div className="flex w-full mb-10">
+          <Link href={"/dashboard"} >
+            <p className="hover:text-gray-400">&#60; Go Back to Dashboard</p>
+          </Link>
         </div>
-      )}
+        <div className="bg-white p-8 rounded border-1 border-gray-100 shadow-md max-w-[450px] w-full">
+          <h1 className="text-4xl font-bold mt-4 mb-2">{test.name}</h1>
+          <p className="mb-8">{test.description}</p>
+          {renderForm()}
+        </div>
+
+        {result && (
+          <div className="mt-6 bg-green-50 p-4 rounded">
+            <h3 className="font-bold">Result</h3>
+            <div className="text-sm text-gray-700">
+              <p>
+                <strong>Risk Percentage:</strong>{" "}
+                {!isNaN(Number(result?.risk_percentage))
+                  ? `${Number(result.risk_percentage).toFixed(2)}%`
+                  : result?.risk_percentage ?? "N/A"}
+              </p>
+              <p>
+                <strong>Risk Category:</strong> {result?.risk_category || "N/A"}
+              </p>
+              <p>
+                <strong>Interpretation:</strong>{" "}
+                {result?.interpretation || "N/A"}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

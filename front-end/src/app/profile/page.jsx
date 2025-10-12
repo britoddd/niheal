@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { authAPI } from "../../lib/api";
 import { FaRegUserCircle } from "react-icons/fa";
 
-const API_URL = "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const Profile = () => {
   const [user, setUser] = useState(null);

@@ -35,6 +35,7 @@ const upload = multer({ storage });
 const PORT = process.env.PORT || 4000;
 
 // Middleware
+app.set("trust proxy", 1);
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://localhost:3001", "https://niheal.vercel.app"],
@@ -45,7 +46,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(
   session({
-    secret: `secret`,
+    secret: "secret",
     resave: false,
     saveUninitialized: false,
     cookie: {

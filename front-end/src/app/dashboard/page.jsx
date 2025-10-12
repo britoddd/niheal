@@ -166,17 +166,14 @@ const Dashboard = () => {
 
   return (
     <section className="flex flex-col justify-center items-center min-h-screen p-8 sm:p-20 bg-gray-100 bg-[url(/login_bg.png)] bg-cover bg-center">
-      <h1 className="text-4xl font-bold mb-3 mt-5">
-        Selamat datang, {user?.name || "User"}
-      </h1>
-      <div className="flex flex-col items-center text-center mb-10 pb-6 w-full">
+      <div className="flex flex-col items-center text-center pb-6 w-full">
         <Link href="/profile">
           {profile.profile_picture ? (
             <img
               src={`${API_URL}${profile.profile_picture}`}
               alt="Profile"
-              width="100"
-              height="100"
+              width="120"
+              height="120"
               className="rounded-full border-2 border-gray-300 mt-2 hover:scale-105 transition-transform"
             />
           ) : (
@@ -184,6 +181,9 @@ const Dashboard = () => {
           )}
         </Link>
       </div>
+      <h1 className="text-4xl font-bold mb-10 ">
+        Selamat datang, {user?.name || "User"}
+      </h1>
       <div className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl w-[1024px] shadow-lg">
         <section className="w-full flex flex-col justify-center items-center gap-6">
           <div className="flex flex-col justify-center items-center">
@@ -211,7 +211,7 @@ const Dashboard = () => {
           </div>
 
           {showTests && (
-            <div className="bg-gray-100 border border-gray-200 rounded-2xl shadow-sm p-6 w-[600px] sm:w-full mt-2 text-left hover:shadow-md transition">
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl shadow-sm p-6 w-[600px] sm:w-full mt-2 text-left hover:shadow-md transition animate-slide-fade-in">
               <div className="space-y-3">
                 {tests.map((test) => (
                   <div

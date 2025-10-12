@@ -43,16 +43,25 @@ export const authAPI = {
   },
 
   async login(credentials) {
-    return apiCall('/api/login', {
+    const res = await apiCall('/api/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
+    // Notify app that auth state changed (so navbar and others can refresh)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('auth:changed'));
+    }
+    return res;
   },
 
   async logout() {
-    return apiCall('/api/logout', {
+    const res = await apiCall('/api/logout', {
       method: 'POST',
     });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('auth:changed'));
+    }
+    return res;
   },
 
   async getCurrentUser() {

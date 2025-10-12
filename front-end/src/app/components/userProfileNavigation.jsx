@@ -3,30 +3,43 @@
 import { AiOutlineUser } from "react-icons/ai";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { authAPI } from "../../lib/api";
+import Link from "next/link";
+import { authAPI, apiCall } from "../../lib/api";
+import { FaRegUserCircle } from "react-icons/fa";
+
+const API_URL = "http://localhost:4000";
 
 export default function UserProfileNavigation() {
   const [session, setSession] = useState(null); // null = unknown, false = not logged in, object = user
   const router = useRouter();
   const [profile, setProfile] = useState({});
+  const [loading, setLoading] = useState(true);
 
+  // Fetch profile when logged in
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [profileRes] = await Promise.all([apiCall("/api/profile")]);
-
-        setProfile(profileRes.profile || {});
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        if (error.message === "Not authenticated") {
-          router.push("/login");
-        }
-      } finally {
+    let active = true;
+    const loadProfile = async () => {
+      if (!session) {
+        setProfile({});
         setLoading(false);
+        return;
+      }
+      try {
+        const res = await apiCall("/api/profile", { suppressAutoRedirect: true });
+        if (!active) return;
+        setProfile(res.profile || {});
+      } catch (error) {
+        if (!active) return;
+        console.error("Error fetching profile:", error);
+      } finally {
+        if (active) setLoading(false);
       }
     };
-    fetchData();
-  }, [router]);
+    loadProfile();
+    return () => {
+      active = false;
+    };
+  }, [session]);
 
   const handleLogin = () => {
     router.push("/login");
@@ -55,8 +68,21 @@ export default function UserProfileNavigation() {
         setSession(false);
       }
     })();
+    // Listen for auth changes (login/logout) to refresh state reactively
+    const onAuthChanged = () => {
+      authAPI
+        .getCurrentUser()
+        .then((res) => setSession(res && res.user ? res.user : false))
+        .catch(() => setSession(false));
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("auth:changed", onAuthChanged);
+    }
     return () => {
       mounted = false;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("auth:changed", onAuthChanged);
+      }
     };
   }, []);
 
@@ -67,19 +93,19 @@ export default function UserProfileNavigation() {
     return (
       <div>
         <a onClick={handleProfile} className="cursor-pointer">
-          {profile.profile_picture ? (
-            <img
-              src={`${API_URL}${profile.profile_picture}`}
-              alt="Profile"
-              width="100"
-              height="100"
-              className="rounded-full border-2 border-gray-300 mt-2 hover:scale-105 transition-transform"
-            />
-          ) : (
-            <button className="text-2xl px-4 py-2 rounded-xl hover:text-gray-400 flex justify-center items-center">
-              <AiOutlineUser />
-            </button>
-          )}
+          <Link href="/profile">
+            {profile && profile.profile_picture ? (
+              <img
+                src={`${API_URL}${profile.profile_picture}`}
+                alt="Profile"
+                width={55}
+                height={55}
+                className="rounded-full border-2 border-gray-300 hover:scale-105 transition-transform object-cover"
+              />
+            ) : (
+              <AiOutlineUser className="text-2xl" />
+            )}
+          </Link>
         </a>
       </div>
     );

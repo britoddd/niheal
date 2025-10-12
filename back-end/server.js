@@ -98,6 +98,7 @@ app.post("/api/register", async (req, res) => {
 
   try {
     let hashedPassword = await bcrypt.hash(password, 10);
+    
     pool.query(
       `SELECT * FROM users WHERE email = $1`,
       [email],

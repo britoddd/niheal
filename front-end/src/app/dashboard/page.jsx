@@ -187,7 +187,9 @@ const Dashboard = () => {
       <div className="flex flex-col items-center justify-center bg-white p-10 rounded-3xl w-[1024px] shadow-lg">
         <section className="w-full flex flex-col justify-center items-center gap-6">
           <div className="flex flex-col justify-center items-center">
-            <h2 className="text-3xl font-bold mb-1 mt-2">Health Risk Assessment</h2>
+            <h2 className="text-3xl font-bold mb-1 mt-2">
+              Health Risk Assessment
+            </h2>
             <p className="text-gray-600 mb-3">Mau apa hari ini?</p>
           </div>
 

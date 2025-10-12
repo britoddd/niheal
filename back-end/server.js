@@ -37,7 +37,7 @@ const PORT = process.env.PORT || 4000;
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "https://niheal.vercel.app"],
     credentials: true,
   })
 );
@@ -49,7 +49,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       sameSite: "lax",
     },

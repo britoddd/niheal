@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiCall } from "../../lib/api";
+import { fetchLearningList } from "../../lib/learning";
 import Container from "./container";
 import Image from "next/image";
 import { FaRegUserCircle } from "react-icons/fa";
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const [calculating, setCalculating] = useState(false);
   const [result, setResult] = useState(null);
   const [showLearns, setShowLearns] = useState(false);
+  const [learningList, setLearningList] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -39,6 +41,13 @@ const Dashboard = () => {
         setProfile(profileRes.profile || {});
         setTests(testsRes.tests || []);
         setTestHistory(historyRes.history || []);
+        // Fetch learning list after auth since endpoint requires auth
+        try {
+          const list = await fetchLearningList();
+          setLearningList(list);
+        } catch (e) {
+          console.warn("Unable to fetch learning list:", e?.message);
+        }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         if (error.message === "Not authenticated") {
@@ -61,9 +70,11 @@ const Dashboard = () => {
     setShowLearns(!showLearns);
   };
 
-  const handleLearningSelect = (learning) => {
-    // navigate to dedicated ;learning page
-    router.push(`/learning/${learning.id}`);
+  const handleLearningSelect = (item) => {
+    // navigate to dedicated learning page (slug-based)
+    if (item?.slug) {
+      router.push(`/learning/${item.slug}`);
+    }
   };
 
   const handleTestSelect = (test) => {
@@ -269,7 +280,34 @@ const Dashboard = () => {
 
           {showLearns && (
             <div className="bg-gray-100 border border-gray-200 rounded-2xl shadow-sm p-6 w-[600px] sm:w-full mt-2 text-left hover:shadow-md transition">
-              <div className="space-y-3"></div>
+              <div className="space-y-3">
+                {learningList.length === 0 && (
+                  <p className="text-gray-600">No learning materials available yet.</p>
+                )}
+                {learningList.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleLearningSelect(item)}
+                    className="border border-gray-200 rounded-xl p-5 hover:bg-blue-50 cursor-pointer bg-white flex flex-row gap-5"
+                  >
+                    <Image
+                      src="/3d_avatar_20.png"
+                      width={60}
+                      height={60}
+                      alt="Learning"
+                    />
+                    <div className="flex flex-row justify-between w-full">
+                      <div className="flex flex-col justify-center">
+                        <strong className="block text-black">{item.title}</strong>
+                        <p className="text-sm text-gray-600">Klik untuk mulai belajar</p>
+                      </div>
+                      <button className="bg-gray-100 pl-5 pr-5 rounded-md text-sm line hover:bg-blue-100">
+                        Mulai Belajar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </section>
@@ -924,7 +962,7 @@ export const KFREForm = ({ onSubmit, calculating }) => {
         />
       </label>
 
-      <label className="block flex flex-col">
+      <label className="flex flex-col">
         Model Type
         <select
           className={inputStyle}

@@ -29,6 +29,8 @@ const TestPage = () => {
     fetchTest();
   }, [id, router]);
 
+  console.log(test);
+
   const handleASCVDSubmit = async (formData) => {
     setCalculating(true);
     try {

@@ -98,7 +98,7 @@ app.post("/api/register", async (req, res) => {
 
   try {
     let hashedPassword = await bcrypt.hash(password, 10);
-    
+
     pool.query(
       `SELECT * FROM users WHERE email = $1`,
       [email],
@@ -241,7 +241,7 @@ app.get("/api/risk-tests", checkNotAuthenticated, async (req, res) => {
 });
 
 // Get a single risk test by id
-app.get('/api/risk-tests/:id', checkNotAuthenticated, async (req, res) => {
+app.get("/api/risk-tests/:id", checkNotAuthenticated, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
@@ -249,12 +249,42 @@ app.get('/api/risk-tests/:id', checkNotAuthenticated, async (req, res) => {
       [id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Test not found' });
+      return res.status(404).json({ message: "Test not found" });
     }
     res.json({ test: result.rows[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error fetching test.' });
+    res.status(500).json({ message: "Error fetching test." });
+  }
+});
+
+app.get("/api/learning/:slug", checkNotAuthenticated, async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT id, title, content FROM learning_material WHERE slug = $1`,
+      [slug]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Test not found" });
+    }
+    
+    res.json({ learning: result.rows });
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+// List all learning materials (id, title, slug) for the dashboard
+app.get("/api/learning", checkNotAuthenticated, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, title, slug FROM learning_material ORDER BY id ASC`
+    );
+    return res.json({ list: result.rows });
+  } catch (err) {
+    console.error("Error fetching learning list:", err);
+    return res.status(500).json({ message: "Error fetching learning materials." });
   }
 });
 
@@ -471,11 +501,9 @@ app.post("/api/calculate-cancer", checkNotAuthenticated, async (req, res) => {
       `Found ${coefficientsResult.rows.length} coefficients for cancer type: ${cancer_type}`
     );
     if (coefficientsResult.rows.length === 0) {
-      return res
-        .status(400)
-        .json({
-          message: "No coefficients found for the specified cancer type.",
-        });
+      return res.status(400).json({
+        message: "No coefficients found for the specified cancer type.",
+      });
     }
 
     const riskResult = CancerRiskCalculator.calculateRisk(
